@@ -60,3 +60,35 @@
 
 ### Next Day 2: 
 Implement duplicate purchase request protection (idempotency), execute the benchmark purchase, verify weighted average cost (WAC), and begin the production workflow.
+
+## Day 2 — November 20, 2026
+
+### Completed
+- Added `client_request_id` and `request_hash` columns to `purchase_orders` via ALTER TABLE.
+- Created partial unique index `uq_purchase_orders_client_request_id` on `purchase_orders`.
+- Implemented idempotency in purchase API: same ID + same payload returns original result; same ID + different payload returns 409.
+- Fixed `get_stock_balance` returning `float` — corrected to `str(Decimal(...))`.
+- Tested idempotency: new purchase (201), exact replay (200, same PO id), different payload (409).
+- Verified database integrity: exactly one purchase order and one ledger row created across three test attempts.
+- Cleaned up test purchase row.
+- Executed benchmark purchase: 60 kg Rice Flour at ₹45/kg.
+- Verified benchmark result: balance = 160 kg, WAC = ₹43.1250/kg.
+
+### Files Created / Updated
+- `backend/app/models/schema.sql` — documented new columns (ALTER TABLE applied directly)
+- `backend/app/routers/inventory.py` — idempotency logic, float fix
+
+### Verified Benchmark
+
+| Item     | Opening | Purchased | Balance | WAC      |
+|----------|--------:|----------:|--------:|---------:|
+| RM-FLOUR | 100 kg  | 60 kg     | 160 kg  | ₹43.1250 |
+
+### Next — Day 3
+- Begin production workflow:
+  - Production run creation API.
+  - BOM requirement calculation.
+  - Raw material consumption recording.
+  - Finished goods output recording.
+  - Stock ledger updates for production.
+  - Yield and consumption variance calculation.

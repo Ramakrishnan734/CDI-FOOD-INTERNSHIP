@@ -26,6 +26,9 @@
 - [x] Purchase API validation tests passed
 - [x] Failed purchase requests verified to leave the database unchanged
 - [x] Database connection and transaction handling reviewed
+- [x] Duplicate purchase request protection (idempotency)
+- [x] Database migration for `client_request_id` and request hash
+- [x] Benchmark purchase execution and WAC verification
 ## In Progress
 
 - [ ] Duplicate purchase request protection (idempotency)
@@ -34,9 +37,7 @@
 - [ ] Raw material consumption recording
 - [ ] Finished goods production and stock update
 - [ ] Yield and material consumption variance calculation
-- [ ] Duplicate purchase request protection (idempotency)
-- [ ] Database migration for `client_request_id` and request hash
-- [ ] Benchmark purchase execution and WAC verification
+
 
 ## Pending
 
