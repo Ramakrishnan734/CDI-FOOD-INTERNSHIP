@@ -1,29 +1,81 @@
 # CDI Food ERP — Task Tracker
 
 ## Completed
-- [x] PostgreSQL setup, database created
-- [x] Python venv + dependencies installed
-- [x] Project folder structure
-- [x] database.py with connection
-- [x] Database schema — 14 tables
-- [x] Seed script — master data + opening stock
-- [x] Opening balances verified
 
+- [x] PostgreSQL setup and database creation
+- [x] Python virtual environment and dependencies installed
+- [x] Project folder structure
+- [x] `database.py` — database connection
+- [x] Database schema — 14 tables
+- [x] Seed script — master data and opening stock
+- [x] Opening stock balances verified
+- [x] FastAPI application entry point (`main.py`)
+- [x] Database connection dependency (`dependencies.py`)
+- [x] Authentication — login and JWT
+- [x] Role-based access control (RBAC)
+- [x] Inventory purchase API
+- [x] Stock balance API
+- [x] Purchase input validation
+- [x] Purchase role authorization
+- [x] Shared inventory service for stock locking and WAC retrieval
+- [x] Invalid purchase requests tested
+- [x] Database integrity verified after failed purchase requests
+- [x] FastAPI Swagger documentation verified
+- [x] Authentication and inventory endpoints verified in Swagger
+- [x] Python dependencies checked using `pip check`
+- [x] Purchase API validation tests passed
+- [x] Failed purchase requests verified to leave the database unchanged
+- [x] Database connection and transaction handling reviewed
 ## In Progress
-- [ ] FastAPI app entry point (main.py)
-- [ ] DB connection dependency (dependencies.py)
-- [ ] Auth router — login + JWT
-- [ ] RBAC middleware
+
+- [ ] Duplicate purchase request protection (idempotency)
+- [ ] Benchmark purchase execution and WAC verification
+- [ ] BOM-based production run API
+- [ ] Raw material consumption recording
+- [ ] Finished goods production and stock update
+- [ ] Yield and material consumption variance calculation
+- [ ] Duplicate purchase request protection (idempotency)
+- [ ] Database migration for `client_request_id` and request hash
+- [ ] Benchmark purchase execution and WAC verification
 
 ## Pending
-- [ ] Purchase API + stock ledger write
-- [ ] BOM + production run API
-- [ ] Sales order API (mobile)
-- [ ] Admin approval + GST invoice
-- [ ] Dispatch → stock deduction
-- [ ] Payments + outstanding
-- [ ] Costing + cost per packet
-- [ ] Reports + Excel export
-- [ ] React frontend
+
+### Sales Management
+- [ ] Sales order API (salesman/mobile)
+- [ ] Admin order approval
+- [ ] GST invoice generation and PDF
+- [ ] Dispatch and finished goods stock deduction
+- [ ] Partial dispatch and backorder handling
+
+### Finance and Costing
+- [ ] Payment recording
+- [ ] Customer outstanding balance
+- [ ] Production costing
+- [ ] Cost per packet and profit margin calculation
+- [ ] GST summary
+
+### Inventory and Reports
+- [ ] Stock ledger and inventory reports
+- [ ] Sales reports
+- [ ] Excel export
+- [ ] Low-stock alerts
+
+### Frontend
+- [ ] React frontend setup
+- [ ] Login and role-based dashboards
+- [ ] Inventory management screens
+- [ ] Production management screens
+- [ ] Sales order and approval screens
+- [ ] Reports and dashboard
+
+### Deployment and Documentation
 - [ ] Docker Compose
-- [ ] README, DESIGN_NOTE, demo video
+- [ ] README
+- [ ] DESIGN_NOTE
+- [ ] ASSUMPTIONS documentation
+- [ ] Testing and bug fixes
+- [ ] Deployment
+- [ ] Demo video
+
+
+
