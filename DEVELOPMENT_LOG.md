@@ -135,3 +135,41 @@ Implement duplicate purchase request protection (idempotency), execute the bench
 - Sales order API (salesman creates order).
 - Admin approval and GST invoice generation.
 - Dispatch and finished goods stock deduction.
+
+## Day 4 — November 20, 2026
+
+### Completed
+- Implemented sales order creation API (`POST /sales/order`).
+- Salesman and admin roles can create orders.
+- Customer validation — checks customer exists and is active.
+- Item validation — only finished goods can be sold.
+- Order number auto-generated in format `ORD-YYYYMMDD-NNNN`.
+- Order stored with status `pending`. No stock movement at creation.
+- Tested Retailer A order: 150 packets × ₹50 = ₹7,500 taxable value.
+- Verified database: order and line stored correctly.
+- Verified stock balance unchanged at 246 packets after order creation.
+
+### Files Created / Updated
+- `backend/app/routers/sales.py` — new file
+- `backend/app/main.py` — sales router registered
+
+### Verified Order Creation
+
+| Field | Value |
+|---|---|
+| Order number | ORD-20261120-0001 |
+| Customer | Retailer A (TN) |
+| Status | pending |
+| Taxable value | ₹7,500.00 |
+| FG-MRK200 balance | 246.000 (unchanged) |
+
+### Next — Phase 2
+- Admin approval endpoint (`POST /sales/{order_id}/approve`).
+- Stock availability check at approval time.
+- GST calculation: TN→TN = CGST 2.5% + SGST 2.5%, TN→other = IGST 5%.
+- Invoice number generation in format `INV-FY2627-NNNN`.
+- Invoice fields populated on the sales_orders row.
+
+
+
+

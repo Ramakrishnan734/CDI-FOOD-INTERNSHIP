@@ -33,14 +33,12 @@
 - [x] Raw material consumption recording
 - [x] Finished goods production and stock update
 - [x] Yield and material consumption variance calculation
-## In Progress
-
+- [x] Sales order API (salesman/mobile)
 
 
 ## Pending
 
 ### Sales Management
-- [ ] Sales order API (salesman/mobile)
 - [ ] Admin order approval
 - [ ] GST invoice generation and PDF
 - [ ] Dispatch and finished goods stock deduction
