@@ -5,7 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers import auth
 from app.routers import inventory
-from app.routers import production                   
+from app.routers import production 
+from app.routers import sales                    
 
 app = FastAPI(
     title="CDI Food ERP",
@@ -24,6 +25,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(inventory.router) 
 app.include_router(production.router)
+app.include_router(sales.router) 
 
 
 @app.get("/")
