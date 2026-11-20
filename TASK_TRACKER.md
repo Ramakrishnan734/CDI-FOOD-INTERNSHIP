@@ -29,14 +29,12 @@
 - [x] Duplicate purchase request protection (idempotency)
 - [x] Database migration for `client_request_id` and request hash
 - [x] Benchmark purchase execution and WAC verification
+- [x] BOM-based production run API
+- [x] Raw material consumption recording
+- [x] Finished goods production and stock update
+- [x] Yield and material consumption variance calculation
 ## In Progress
 
-- [ ] Duplicate purchase request protection (idempotency)
-- [ ] Benchmark purchase execution and WAC verification
-- [ ] BOM-based production run API
-- [ ] Raw material consumption recording
-- [ ] Finished goods production and stock update
-- [ ] Yield and material consumption variance calculation
 
 
 ## Pending

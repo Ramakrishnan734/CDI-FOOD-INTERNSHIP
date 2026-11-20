@@ -92,3 +92,46 @@ Implement duplicate purchase request protection (idempotency), execute the bench
   - Finished goods output recording.
   - Stock ledger updates for production.
   - Yield and consumption variance calculation.
+
+## Day 3 — November 20, 2026
+
+### Completed
+- Implemented production workflow: draft and post two-phase design.
+- Created `backend/app/routers/production.py` with two endpoints:
+  - `POST /production/start` — creates draft run, calculates planned quantities from BOM.
+  - `POST /production/{run_id}/post` — posts run, writes stock movements, calculates variances.
+- Registered production router in `main.py`.
+- Tested full production run: 200 planned packets, 196 actual output.
+- Verified WAC-based material costing at issue time.
+- Variance detection working: RM-SPICE flagged at 4.17% (threshold 3%).
+- Verified all stock balances after production.
+
+### Files Created / Updated
+- `backend/app/routers/production.py` — new file
+- `backend/app/main.py` — production router registered
+
+### Verified Stock Balances After Production
+
+| Item      | Balance  | Unit   |
+|-----------|--------:|--------|
+| RM-FLOUR  | 118.800 | kg     |
+| RM-OIL   |  20.000 | litre  |
+| RM-SPICE |   3.750 | kg     |
+| PK-POUCH | 300.000 | piece  |
+| PK-CARTON|  20.000 | piece  |
+| FG-MRK200| 246.000 | packet |
+
+### Verified Production Costing
+
+| | Amount |
+|---|---:|
+| Total material cost | ₹4,076.75 |
+| Labour cost | ₹500.00 |
+| Overhead cost | ₹200.00 |
+| Total cost | ₹4,776.75 |
+| Cost per packet | ₹24.3712 |
+
+### Next — Day 4
+- Sales order API (salesman creates order).
+- Admin approval and GST invoice generation.
+- Dispatch and finished goods stock deduction.
