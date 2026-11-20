@@ -287,3 +287,10 @@ All four phases implemented and benchmark-verified:
 | Retailer A outstanding | ₹3,875 | ✅ |
 | Distributor B shortage | 32 packets | ✅ |
 | Cost per packet | ₹31.1436 | ✅ |
+
+### Completed — React Frontend
+- Login page with role-based redirect.
+- Salesman dashboard — finished goods stock, place order form, live taxable value preview.
+- Admin dashboard — stock summary, order list with status badges, approve, dispatch, payment, invoice download.
+- Axios client with JWT interceptor and auto-redirect on 401.
+- Added `GET /sales/orders` endpoint for admin order listing.

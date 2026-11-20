@@ -41,6 +41,9 @@
 - [x] Customer outstanding balance
 - [x] Partial dispatch and backorder handling
 - [x] Stock ledger and inventory reports
+- [x] React frontend setup
+- [x] Login and role-based dashboards
+- [x] Sales order and approval screens
 
 ## Pending
 
@@ -59,11 +62,8 @@
 - [ ] Low-stock alerts
 
 ### Frontend
-- [ ] React frontend setup
-- [ ] Login and role-based dashboards
 - [ ] Inventory management screens
 - [ ] Production management screens
-- [ ] Sales order and approval screens
 - [ ] Reports and dashboard
 
 ### Deployment and Documentation
