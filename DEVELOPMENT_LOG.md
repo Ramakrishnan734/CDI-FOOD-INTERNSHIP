@@ -263,3 +263,27 @@ All four phases implemented and benchmark-verified:
 - Running balance calculated using PostgreSQL window function.
 - Tested with FG-MRK200 and RM-FLOUR — all movements and balances correct.
 - Accessible to all roles.
+
+## Day 4 — Benchmark Reset and Verification
+
+### Completed
+- Reset transaction data to correct benchmark numbers from problem statement.
+- Re-ran full benchmark scenario end to end.
+- All stock balances, costing, GST, and outstanding figures verified.
+
+### Verified Final Benchmark
+
+| Check | Expected | Result |
+|---|---|---|
+| Flour closing balance | 120 kg | ✅ |
+| Oil closing balance | 19.5 L | ✅ |
+| Pouches closing balance | 306 | ✅ |
+| FG after production run | 238 packets | ✅ |
+| FG after Retailer A dispatch | 88 packets | ✅ |
+| Oil variance | +5% flagged | ✅ |
+| Carton variance | −10% flagged | ✅ |
+| Yield variance | 188 vs 200, −6% flagged | ✅ |
+| Retailer A invoice | ₹7,875 | ✅ |
+| Retailer A outstanding | ₹3,875 | ✅ |
+| Distributor B shortage | 32 packets | ✅ |
+| Cost per packet | ₹31.1436 | ✅ |
