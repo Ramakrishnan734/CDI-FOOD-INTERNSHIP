@@ -1,58 +1,182 @@
 # CDI Food ERP
 
-Order-to-Audit System for a Small South Indian Food Manufacturer
-NIT Tiruchirappalli — CDI Software Developer Intern — Winter 2026
+An order-to-audit ERP system for a small South Indian packaged snacks manufacturing factory.
 
-## Stack
+Built for the NIT Tiruchirappalli Centre for Digital Infrastructure — Software Developer Intern (Winter 2026) assignment.
 
-- Backend: FastAPI + Python 3.14 + PostgreSQL 16
-- Frontend: React + Vite + Tailwind CSS
-- Auth: JWT with role-based access control
-- DB access: SQLAlchemy Core (raw SQL, no ORM)
+---
 
-**Why this stack:** FastAPI gives automatic API docs and fast development.
-PostgreSQL provides ACID transactions and NUMERIC arithmetic for correct
-financial calculations. SQLAlchemy Core keeps SQL readable and explainable.
+## Business Workflows
 
-## Setup (local)
+**Production workflow**
+Purchase raw materials → update stock → run BOM-based production → record finished goods → calculate cost and variance.
 
-### Requirements
-- Python 3.11+
+**Sales workflow**
+Salesman creates order → admin approves and generates GST invoice → dispatch deducts stock → record payments → track outstanding balance.
+
+---
+
+## Technology Stack
+
+| Layer | Technology |
+|---|---|
+| Backend | Python 3.14 + FastAPI |
+| Database | PostgreSQL 16 |
+| DB Access | SQLAlchemy Core (raw SQL) |
+| Auth | JWT + bcrypt |
+| Frontend | React + Vite + Tailwind CSS + shadcn/ui |
+| PDF | WeasyPrint |
+| Excel | openpyxl |
+| Deployment | Railway (backend) + Vercel (frontend) |
+
+---
+
+## Project Structure
+
+```
+CDI-FOOD-INTERNSHIP/
+├── backend/
+│   ├── app/
+│   │   ├── main.py               # FastAPI entry point
+│   │   ├── database.py           # PostgreSQL engine
+│   │   ├── dependencies.py       # Auth and DB dependencies
+│   │   ├── routers/
+│   │   │   ├── auth.py           # Login and JWT
+│   │   │   ├── inventory.py      # Purchase, balance, ledger
+│   │   │   ├── production.py     # Production runs
+│   │   │   └── sales.py          # Orders, approval, dispatch, payment
+│   │   └── services/
+│   │       └── inventory_service.py  # WAC and stock locking
+│   ├── models/
+│   │   └── schema.sql            # 14-table database schema
+│   └── requirements.txt
+├── DESIGN_NOTE.md
+├── ASSUMPTIONS.md
+├── DEVELOPMENT_LOG.md
+├── TASK_TRACKER.md
+└── README.md
+```
+
+---
+
+## Local Setup
+
+### Prerequisites
+- Python 3.14
 - PostgreSQL 16
-- Node.js 18+
+- Node.js 20 (for frontend)
 
 ### Backend
+
 ```bash
 cd backend
-python -m venv venv
+python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
-python -m seed.seed       # creates tables and loads benchmark data
+```
+
+Create the database:
+
+```bash
+createdb cdi_food_db
+psql -U your_user -d cdi_food_db -f app/models/schema.sql
+```
+
+Set environment variable (optional — defaults to local):
+
+```bash
+export DATABASE_URL="postgresql+psycopg2://user:password@localhost:5432/cdi_food_db"
+```
+
+Run the server:
+
+```bash
 uvicorn app.main:app --reload
 ```
 
-### Frontend
-```bash
-cd frontend
-npm install
-npm run dev
-```
+API documentation available at: `http://localhost:8000/docs`
 
-## Test logins
+---
 
-| Role       | Email                  | Password   |
-|------------|------------------------|------------|
-| Admin      | admin@cdi.com          | admin123   |
-| Salesman A | salesman_a@cdi.com     | sales123   |
-| Salesman B | salesman_b@cdi.com     | sales123   |
-| Production | prod@cdi.com           | prod123    |
-| Auditor    | audit@cdi.com          | audit123   |
-| Owner      | owner@cdi.com          | owner123   |
+## API Endpoints
 
-## Benchmark numbers
+### Authentication
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/auth/login` | Login and get JWT token |
 
-(To be filled after benchmark verification)
+### Inventory
+| Method | Endpoint | Role | Description |
+|---|---|---|---|
+| POST | `/inventory/purchase` | admin, production | Record a purchase |
+| GET | `/inventory/balance` | all | Current stock balances |
+| GET | `/inventory/ledger?item_code=XX` | all | Stock ledger with running balance |
 
-## Known gaps
+### Production
+| Method | Endpoint | Role | Description |
+|---|---|---|---|
+| POST | `/production/start` | admin, production | Create draft production run |
+| POST | `/production/{id}/post` | admin, production | Post run and update stock |
 
-(To be filled before submission)
+### Sales
+| Method | Endpoint | Role | Description |
+|---|---|---|---|
+| POST | `/sales/order` | salesman, admin | Create sales order |
+| POST | `/sales/{id}/approve` | admin | Approve order and generate GST invoice |
+| POST | `/sales/{id}/dispatch` | admin | Dispatch and deduct stock |
+| POST | `/sales/{id}/payment` | admin | Record payment |
+
+---
+
+## Roles
+
+| Role | Access |
+|---|---|
+| owner | Read all |
+| admin | Full access |
+| salesman | Create orders, view stock |
+| production | Purchase, production runs, view stock |
+| auditor | Read all |
+
+---
+
+## Key Design Decisions
+
+- **Stock ledger as single source of truth** — no running balance stored; always computed from ledger rows.
+- **Weighted Average Cost (WAC)** — used for raw material and finished goods valuation.
+- **Decimal arithmetic throughout** — no float used for financial calculations.
+- **Idempotent purchase API** — duplicate requests detected via `client_request_id` and SHA-256 hash.
+- **Draft → Post production workflow** — planned quantities recorded first, actuals posted separately.
+- **GST logic** — seller state TN; same state → CGST + SGST; different state → IGST.
+
+---
+
+## Benchmark Results
+
+### Flour Purchase
+| Item | Opening | Purchased | Balance | WAC |
+|---|---:|---:|---:|---:|
+| RM-FLOUR | 100 kg | 60 kg | 160 kg | ₹43.1250/kg |
+
+### Production Run
+| Output | Cost |
+|---|---:|
+| 196 packets (planned 200) | ₹24.3712/packet |
+
+### Retailer A — Tamil Nadu
+| Field | Value |
+|---|---:|
+| Taxable value | ₹7,500.00 |
+| CGST 2.5% | ₹187.50 |
+| SGST 2.5% | ₹187.50 |
+| Invoice total | ₹7,875.00 |
+| Payment | ₹4,000.00 |
+| Outstanding | ₹3,875.00 |
+
+### Distributor B — Karnataka
+| Situation | Result |
+|---|---|
+| Order: 120 packets | Approval blocked |
+| Stock available | 96 packets |
+| Shortage | 24 packets |
+| GST type if fulfilled | IGST 5% |
