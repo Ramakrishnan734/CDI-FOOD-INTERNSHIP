@@ -585,3 +585,42 @@ def download_invoice_pdf(
             "Content-Disposition": f"attachment; filename={order.invoice_number}.pdf"
         },
     )
+
+# ------------------------------------------------------------------
+# GET /sales/orders
+# Role: admin, owner, auditor
+# ------------------------------------------------------------------
+
+@router.get("/orders")
+def list_orders(
+    conn=Depends(get_db),
+    user=Depends(require_role("admin", "owner", "auditor")),
+):
+    rows = conn.execute(
+        text("""
+            SELECT so.id, so.order_number, so.status, so.order_date,
+                   so.invoice_number, so.invoice_total,
+                   so.taxable_value, so.amount_paid, so.outstanding,
+                   c.name AS customer_name, c.state_code
+            FROM sales_orders so
+            JOIN customers c ON c.id = so.customer_id
+            ORDER BY so.created_at DESC
+        """),
+    ).fetchall()
+
+    return [
+        {
+            "id": r.id,
+            "order_number": r.order_number,
+            "status": r.status,
+            "order_date": str(r.order_date),
+            "invoice_number": r.invoice_number,
+            "invoice_total": str(r.invoice_total) if r.invoice_total else None,
+            "taxable_value": str(r.taxable_value) if r.taxable_value else None,
+            "amount_paid": str(r.amount_paid) if r.amount_paid else None,
+            "outstanding": str(r.outstanding) if r.outstanding else None,
+            "customer_name": r.customer_name,
+            "customer_state": r.state_code,
+        }
+        for r in rows
+    ]
