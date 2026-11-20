@@ -6,6 +6,8 @@ from decimal import Decimal
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy import text
+from fastapi.responses import Response
+from app.services.pdf_service import generate_invoice_pdf
 
 from app.dependencies import get_db, require_role
 from app.services.inventory_service import get_balance_and_wac
@@ -501,3 +503,85 @@ def record_payment(
         "new_outstanding": str(new_outstanding),
         "fully_paid": new_outstanding == Decimal("0.00"),
     }
+
+# ------------------------------------------------------------------
+# GET /sales/{order_id}/invoice/pdf
+# Role: admin, owner, auditor
+# ------------------------------------------------------------------
+
+@router.get("/{order_id}/invoice/pdf")
+def download_invoice_pdf(
+    order_id: int,
+    conn=Depends(get_db),
+    user=Depends(require_role("admin", "owner", "auditor")),
+):
+    order = conn.execute(
+        text("""
+            SELECT so.id, so.order_number, so.status,
+                   so.invoice_number, so.invoice_date,
+                   so.taxable_value, so.cgst_amount, so.sgst_amount,
+                   so.igst_amount, so.invoice_total,
+                   so.amount_paid, so.outstanding,
+                   c.name AS customer_name, c.state_code, c.gstin AS customer_gstin
+            FROM sales_orders so
+            JOIN customers c ON c.id = so.customer_id
+            WHERE so.id = :order_id
+        """),
+        {"order_id": order_id},
+    ).fetchone()
+
+    if order is None:
+        raise HTTPException(status_code=404, detail=f"Order {order_id} not found")
+    if order.invoice_number is None:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Order {order_id} has not been approved yet. No invoice to download.",
+        )
+
+    lines = conn.execute(
+        text("""
+            SELECT i.name AS item_name, i.unit, i.hsn_code,
+                   sol.qty, sol.unit_price, sol.line_total
+            FROM sales_order_lines sol
+            JOIN items i ON i.id = sol.item_id
+            WHERE sol.order_id = :order_id
+        """),
+        {"order_id": order_id},
+    ).fetchall()
+
+    order_dict = {
+        "order_number": order.order_number,
+        "invoice_number": order.invoice_number,
+        "invoice_date": str(order.invoice_date),
+        "customer_name": order.customer_name,
+        "customer_state": order.state_code,
+        "customer_gstin": order.customer_gstin,
+        "taxable_value": str(order.taxable_value),
+        "cgst_amount": str(order.cgst_amount),
+        "sgst_amount": str(order.sgst_amount),
+        "igst_amount": str(order.igst_amount),
+        "invoice_total": str(order.invoice_total),
+        "amount_paid": str(order.amount_paid),
+        "outstanding": str(order.outstanding),
+        "lines": [
+            {
+                "item_name": l.item_name,
+                "unit": l.unit,
+                "hsn_code": l.hsn_code,
+                "qty": str(l.qty),
+                "unit_price": str(l.unit_price),
+                "line_total": str(l.line_total),
+            }
+            for l in lines
+        ],
+    }
+
+    pdf_bytes = generate_invoice_pdf(order_dict)
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f"attachment; filename={order.invoice_number}.pdf"
+        },
+    )

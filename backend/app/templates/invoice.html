@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    color: #222;
+    margin: 0;
+    padding: 20px;
+  }
+  h1 { font-size: 20px; margin: 0; }
+  h2 { font-size: 14px; margin: 0; }
+  .header { display: flex; justify-content: space-between; margin-bottom: 20px; }
+  .seller { flex: 1; }
+  .invoice-meta { text-align: right; }
+  .invoice-meta table { margin-left: auto; }
+  .parties { display: flex; gap: 40px; margin-bottom: 20px; }
+  .party { flex: 1; border: 1px solid #ccc; padding: 10px; border-radius: 4px; }
+  .party h3 { margin: 0 0 6px 0; font-size: 12px; color: #555; text-transform: uppercase; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
+  th { background: #f0f0f0; text-align: left; padding: 6px 8px; border: 1px solid #ccc; }
+  td { padding: 6px 8px; border: 1px solid #ccc; }
+  .right { text-align: right; }
+  .totals { width: 300px; margin-left: auto; }
+  .totals td { border: none; padding: 3px 8px; }
+  .totals .grand { font-weight: bold; font-size: 13px; border-top: 2px solid #222; }
+  .footer { margin-top: 40px; display: flex; justify-content: space-between; font-size: 11px; color: #555; }
+  .badge { display: inline-block; background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="seller">
+    <h1>CDI Food Products</h1>
+    <div>Survey No. 12, Industrial Estate, Coimbatore, Tamil Nadu — 641001</div>
+    <div>GSTIN: 33AABCC1234D1Z5 &nbsp;|&nbsp; State Code: 33</div>
+    <div>Phone: +91 98400 00001</div>
+  </div>
+  <div class="invoice-meta">
+    <h2>TAX INVOICE</h2>
+    <table>
+      <tr><td>Invoice No.</td><td><strong>{{invoice_number}}</strong></td></tr>
+      <tr><td>Invoice Date</td><td>{{invoice_date}}</td></tr>
+      <tr><td>Order No.</td><td>{{order_number}}</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="parties">
+  <div class="party">
+    <h3>Bill To</h3>
+    <strong>{{customer_name}}</strong><br>
+    State: {{customer_state}}<br>
+    GSTIN: {{customer_gstin}}
+  </div>
+  <div class="party">
+    <h3>GST Type</h3>
+    <strong>{{gst_type}}</strong><br>
+    Place of Supply: {{customer_state}}<br>
+    GST Rate: 5%
+  </div>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Item</th>
+      <th>HSN</th>
+      <th class="right">Qty</th>
+      <th>Unit</th>
+      <th class="right">Rate (₹)</th>
+      <th class="right">Taxable Value (₹)</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{line_rows}}
+  </tbody>
+</table>
+
+<table class="totals">
+  <tr><td>Taxable Value</td><td class="right">₹ {{taxable_value}}</td></tr>
+  {{gst_rows}}
+  <tr class="grand"><td>Invoice Total</td><td class="right">₹ {{invoice_total}}</td></tr>
+  <tr><td>Amount Paid</td><td class="right">₹ {{amount_paid}}</td></tr>
+  <tr><td>Outstanding</td><td class="right">₹ {{outstanding}}</td></tr>
+</table>
+
+<div class="footer">
+  <div>
+    <strong>Payment Terms:</strong> Due on receipt<br>
+    <strong>Bank:</strong> State Bank of India &nbsp;|&nbsp; A/C: 00000000000 &nbsp;|&nbsp; IFSC: SBIN0000000
+  </div>
+  <div style="text-align:right;">
+    For CDI Food Products<br><br><br>
+    Authorised Signatory
+  </div>
+</div>
+
+</body>
+</html>
