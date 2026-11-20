@@ -34,13 +34,13 @@
 - [x] Finished goods production and stock update
 - [x] Yield and material consumption variance calculation
 - [x] Sales order API (salesman/mobile)
+- [x] Admin order approval
+- [x] GST invoice generation and PDF
 
 
 ## Pending
 
 ### Sales Management
-- [ ] Admin order approval
-- [ ] GST invoice generation and PDF
 - [ ] Dispatch and finished goods stock deduction
 - [ ] Partial dispatch and backorder handling
 

@@ -171,5 +171,30 @@ Implement duplicate purchase request protection (idempotency), execute the bench
 - Invoice fields populated on the sales_orders row.
 
 
+## Day 4 continued — November 20, 2026
 
+### Completed
+- Implemented admin approval endpoint (`POST /sales/{order_id}/approve`).
+- Stock availability check at approval time.
+- GST calculation: TN→TN = CGST 2.5% + SGST 2.5%, TN→other = IGST 5%.
+- Invoice number generated in format `INV-FY2627-NNNN`.
+- All invoice fields written to `sales_orders` row at approval.
+- Double-approval blocked with HTTP 409.
+
+### Verified Benchmark — Retailer A Approval
+
+| Field | Value |
+|---|---|
+| Invoice number | INV-FY2627-0001 |
+| Taxable value | ₹7,500.00 |
+| CGST 2.5% | ₹187.50 |
+| SGST 2.5% | ₹187.50 |
+| IGST | ₹0.00 |
+| Invoice total | ₹7,875.00 |
+| Outstanding | ₹7,875.00 |
+
+### Next — Phase 3
+- Dispatch endpoint (`POST /sales/{order_id}/dispatch`).
+- Deduct finished goods from stock ledger.
+- Prevent negative stock and duplicate dispatch.
 
