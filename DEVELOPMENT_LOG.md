@@ -294,3 +294,9 @@ All four phases implemented and benchmark-verified:
 - Admin dashboard — stock summary, order list with status badges, approve, dispatch, payment, invoice download.
 - Axios client with JWT interceptor and auto-redirect on 401.
 - Added `GET /sales/orders` endpoint for admin order listing.
+
+### Completed — Excel Export
+- Implemented `GET /reports/stock` — full stock ledger with running balance exported to Excel.
+- Implemented `GET /reports/sales` — sales register with GST breakup exported to Excel.
+- Styled header rows with dark blue background and white bold text.
+- Both reports verified against benchmark data.

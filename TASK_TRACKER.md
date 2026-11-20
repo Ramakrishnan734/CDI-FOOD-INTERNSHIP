@@ -44,6 +44,7 @@
 - [x] React frontend setup
 - [x] Login and role-based dashboards
 - [x] Sales order and approval screens
+- [x] Excel export
 
 ## Pending
 
@@ -58,7 +59,6 @@
 
 ### Inventory and Reports
 - [ ] Sales reports
-- [ ] Excel export
 - [ ] Low-stock alerts
 
 ### Frontend
