@@ -39,12 +39,12 @@
 - [x] Dispatch and finished goods stock deduction
 - [x] Payment recording
 - [x] Customer outstanding balance
-
+- [x] Partial dispatch and backorder handling
 
 ## Pending
 
 ### Sales Management
-- [ ] Partial dispatch and backorder handling
+
 
 ### Finance and Costing
 

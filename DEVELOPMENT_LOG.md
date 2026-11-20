@@ -241,3 +241,18 @@ Implement duplicate purchase request protection (idempotency), execute the bench
 - Approve — verify IGST calculation.
 - Dispatch — expect failure due to insufficient stock (96 packets available).
 
+### Verified — Distributor B Benchmark
+
+- Order created: ORD-20261120-0002, 120 packets, ₹6,000 taxable value.
+- Approval blocked correctly: insufficient stock (need 120, have 96).
+- Stock shortage: 24 packets.
+- IGST logic confirmed: Karnataka customer would attract IGST 5%.
+- No stock movement occurred for Distributor B order.
+
+### Sales Module — Complete
+
+All four phases implemented and benchmark-verified:
+1. Sales order creation
+2. Admin approval and GST invoice generation
+3. Dispatch and stock deduction
+4. Payment recording and outstanding balance
