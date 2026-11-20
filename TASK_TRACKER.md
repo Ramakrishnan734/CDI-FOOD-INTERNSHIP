@@ -40,6 +40,7 @@
 - [x] Payment recording
 - [x] Customer outstanding balance
 - [x] Partial dispatch and backorder handling
+- [x] Stock ledger and inventory reports
 
 ## Pending
 
@@ -53,7 +54,6 @@
 - [ ] GST summary
 
 ### Inventory and Reports
-- [ ] Stock ledger and inventory reports
 - [ ] Sales reports
 - [ ] Excel export
 - [ ] Low-stock alerts

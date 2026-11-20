@@ -256,3 +256,10 @@ All four phases implemented and benchmark-verified:
 2. Admin approval and GST invoice generation
 3. Dispatch and stock deduction
 4. Payment recording and outstanding balance
+
+### Completed — Stock Ledger Report
+- Implemented `GET /inventory/ledger?item_code=XX`.
+- Returns chronological stock movements with running balance.
+- Running balance calculated using PostgreSQL window function.
+- Tested with FG-MRK200 and RM-FLOUR — all movements and balances correct.
+- Accessible to all roles.

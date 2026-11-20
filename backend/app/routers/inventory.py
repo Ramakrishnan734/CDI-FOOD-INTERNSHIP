@@ -302,3 +302,67 @@ def get_stock_balance(conn=Depends(get_db), user=Depends(require_role(
         }
         for r in rows
     ]
+
+# ------------------------------------------------------------------
+# GET /inventory/ledger?item_code=XX
+# All roles
+# ------------------------------------------------------------------
+
+@router.get("/ledger")
+def get_stock_ledger(
+    item_code: str,
+    conn=Depends(get_db),
+    user=Depends(require_role("admin", "owner", "auditor", "production", "salesman")),
+):
+    # Validate item exists
+    item = conn.execute(
+        text("SELECT id, code, name, unit FROM items WHERE code = :code AND is_active = true"),
+        {"code": item_code},
+    ).fetchone()
+
+    if item is None:
+        raise HTTPException(status_code=404, detail=f"Item '{item_code}' not found")
+
+    rows = conn.execute(
+        text("""
+            SELECT
+                sl.id,
+                sl.created_at,
+                sl.movement_type,
+                sl.qty_in,
+                sl.qty_out,
+                sl.rate,
+                sl.ref_type,
+                sl.ref_id,
+                sl.notes,
+                SUM(sl.qty_in - sl.qty_out) OVER (
+                    ORDER BY sl.created_at, sl.id
+                    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+                ) AS running_balance
+            FROM stock_ledger sl
+            WHERE sl.item_id = :item_id
+            ORDER BY sl.created_at, sl.id
+        """),
+        {"item_id": item.id},
+    ).fetchall()
+
+    return {
+        "item_code": item.code,
+        "item_name": item.name,
+        "unit": item.unit,
+        "movements": [
+            {
+                "id": r.id,
+                "date": r.created_at.strftime("%Y-%m-%d %H:%M"),
+                "movement_type": r.movement_type,
+                "qty_in": str(r.qty_in),
+                "qty_out": str(r.qty_out),
+                "rate": str(r.rate) if r.rate is not None else None,
+                "ref_type": r.ref_type,
+                "ref_id": r.ref_id,
+                "notes": r.notes,
+                "running_balance": str(r.running_balance),
+            }
+            for r in rows
+        ],
+    }
