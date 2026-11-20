@@ -198,3 +198,25 @@ Implement duplicate purchase request protection (idempotency), execute the bench
 - Deduct finished goods from stock ledger.
 - Prevent negative stock and duplicate dispatch.
 
+### Completed — Dispatch
+- Implemented dispatch endpoint (`POST /sales/{order_id}/dispatch`).
+- Stock locked before deduction using `lock_items`.
+- Stock re-checked at dispatch time (not just at approval).
+- `sale_dispatch` ledger row written at WAC issue rate.
+- Duplicate dispatch blocked with HTTP 409.
+
+### Verified Benchmark — Retailer A Dispatch
+
+| Field | Value |
+|---|---|
+| FG-MRK200 dispatched | 150.000 packets |
+| Issue rate (WAC) | ₹19.4177 |
+| FG-MRK200 balance after dispatch | 96.000 packets |
+
+### Next — Phase 4
+- Payment recording (`POST /sales/{order_id}/payment`).
+- Outstanding balance update.
+- Benchmark: record ₹4,000 payment, verify outstanding = ₹3,875.
+
+
+

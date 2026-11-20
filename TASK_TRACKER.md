@@ -36,12 +36,12 @@
 - [x] Sales order API (salesman/mobile)
 - [x] Admin order approval
 - [x] GST invoice generation and PDF
+- [x] Dispatch and finished goods stock deduction
 
 
 ## Pending
 
 ### Sales Management
-- [ ] Dispatch and finished goods stock deduction
 - [ ] Partial dispatch and backorder handling
 
 ### Finance and Costing

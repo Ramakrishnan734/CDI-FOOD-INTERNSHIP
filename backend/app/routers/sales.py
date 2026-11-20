@@ -290,3 +290,112 @@ def approve_sales_order(
         "invoice_total": str(gst["invoice_total"]),
         "outstanding": str(gst["invoice_total"]),
     }
+
+
+# ------------------------------------------------------------------
+# POST /sales/{order_id}/dispatch
+# Role: admin only
+# ------------------------------------------------------------------
+
+@router.post("/{order_id}/dispatch", status_code=200)
+def dispatch_sales_order(
+    order_id: int,
+    conn=Depends(get_db),
+    user=Depends(require_role("admin")),
+):
+    from app.services.inventory_service import lock_items
+
+    with conn.begin():
+
+        # 1. Load order
+        order = conn.execute(
+            text("""
+                SELECT so.id, so.status, so.order_number,
+                       so.invoice_number, so.invoice_total,
+                       c.name AS customer_name
+                FROM sales_orders so
+                JOIN customers c ON c.id = so.customer_id
+                WHERE so.id = :order_id
+            """),
+            {"order_id": order_id},
+        ).fetchone()
+
+        if order is None:
+            raise HTTPException(status_code=404, detail=f"Order {order_id} not found")
+        if order.status != "approved":
+            raise HTTPException(
+                status_code=409,
+                detail=f"Order {order_id} is '{order.status}' and cannot be dispatched",
+            )
+
+        # 2. Load order lines
+        lines = conn.execute(
+            text("""
+                SELECT sol.item_id, sol.qty, i.code, i.name
+                FROM sales_order_lines sol
+                JOIN items i ON i.id = sol.item_id
+                WHERE sol.order_id = :order_id
+            """),
+            {"order_id": order_id},
+        ).fetchall()
+
+        # 3. Lock items and check stock
+        lock_items(conn, [line.item_id for line in lines])
+
+        for line in lines:
+            balance, wac = get_balance_and_wac(conn, line.item_id)
+            if balance < Decimal(str(line.qty)):
+                raise HTTPException(
+                    status_code=422,
+                    detail=(
+                        f"Insufficient stock for '{line.code}': "
+                        f"need {line.qty}, have {balance}"
+                    ),
+                )
+
+        # 4. Write stock-out ledger rows
+        dispatched_lines = []
+        for line in lines:
+            balance, wac = get_balance_and_wac(conn, line.item_id)
+            issue_rate = wac if wac is not None else Decimal("0")
+
+            conn.execute(
+                text("""
+                    INSERT INTO stock_ledger
+                        (item_id, movement_type, qty_in, qty_out, rate,
+                         ref_type, ref_id, created_by)
+                    VALUES
+                        (:item_id, 'sale_dispatch', 0, :qty_out, :rate,
+                         'sales_order', :order_id, :user_id)
+                """),
+                {
+                    "item_id": line.item_id,
+                    "qty_out": Decimal(str(line.qty)),
+                    "rate": issue_rate,
+                    "order_id": order_id,
+                    "user_id": int(user["sub"]),
+                },
+            )
+
+            dispatched_lines.append({
+                "item_code": line.code,
+                "item_name": line.name,
+                "qty_dispatched": str(line.qty),
+                "issue_rate_wac": str(issue_rate),
+            })
+
+        # 5. Update order status
+        conn.execute(
+            text("UPDATE sales_orders SET status = 'dispatched' WHERE id = :order_id"),
+            {"order_id": order_id},
+        )
+
+    return {
+        "order_id": order_id,
+        "order_number": order.order_number,
+        "status": "dispatched",
+        "customer_name": order.customer_name,
+        "invoice_number": order.invoice_number,
+        "invoice_total": str(order.invoice_total),
+        "lines": dispatched_lines,
+    }
