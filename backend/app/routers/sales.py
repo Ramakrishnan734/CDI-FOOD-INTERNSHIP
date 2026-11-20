@@ -399,3 +399,105 @@ def dispatch_sales_order(
         "invoice_total": str(order.invoice_total),
         "lines": dispatched_lines,
     }
+
+
+# ------------------------------------------------------------------
+# Schemas — payment
+# ------------------------------------------------------------------
+
+class RecordPaymentRequest(BaseModel):
+    amount: Decimal = Field(gt=0, max_digits=15, decimal_places=2)
+    payment_date: date
+    reference: str = Field(default="", max_length=100)
+
+
+# ------------------------------------------------------------------
+# POST /sales/{order_id}/payment
+# Role: admin only
+# ------------------------------------------------------------------
+
+@router.post("/{order_id}/payment", status_code=200)
+def record_payment(
+    order_id: int,
+    body: RecordPaymentRequest,
+    conn=Depends(get_db),
+    user=Depends(require_role("admin")),
+):
+    with conn.begin():
+
+        # 1. Load order
+        order = conn.execute(
+            text("""
+                SELECT id, status, order_number, invoice_number,
+                       invoice_total, outstanding
+                FROM sales_orders
+                WHERE id = :order_id
+            """),
+            {"order_id": order_id},
+        ).fetchone()
+
+        if order is None:
+            raise HTTPException(status_code=404, detail=f"Order {order_id} not found")
+        if order.status != "dispatched":
+            raise HTTPException(
+                status_code=409,
+                detail=f"Order {order_id} is '{order.status}'. Payments can only be recorded against dispatched orders.",
+            )
+
+        current_outstanding = Decimal(str(order.outstanding))
+
+        # 2. Validate payment amount
+        if body.amount > current_outstanding:
+            raise HTTPException(
+                status_code=422,
+                detail=(
+                    f"Payment ₹{body.amount} exceeds outstanding ₹{current_outstanding}. "
+                    f"Maximum payment allowed is ₹{current_outstanding}."
+                ),
+            )
+
+        # 3. Record payment
+        conn.execute(
+            text("""
+                INSERT INTO payments
+                    (sales_order_id, payment_date, amount, reference, recorded_by)
+                VALUES
+                    (:order_id, :payment_date, :amount, :reference, :user_id)
+            """),
+            {
+                "order_id": order_id,
+                "payment_date": body.payment_date,
+                "amount": body.amount,
+                "reference": body.reference,
+                "user_id": int(user["sub"]),
+            },
+        )
+
+        # 4. Recalculate outstanding
+        new_outstanding = (current_outstanding - body.amount).quantize(Decimal("0.01"))
+
+        conn.execute(
+            text("""
+                UPDATE sales_orders
+                SET amount_paid  = amount_paid + :amount,
+                    outstanding  = :new_outstanding
+                WHERE id = :order_id
+            """),
+            {
+                "amount": body.amount,
+                "new_outstanding": new_outstanding,
+                "order_id": order_id,
+            },
+        )
+
+    return {
+        "order_id": order_id,
+        "order_number": order.order_number,
+        "invoice_number": order.invoice_number,
+        "invoice_total": str(order.invoice_total),
+        "payment_recorded": str(body.amount),
+        "payment_date": str(body.payment_date),
+        "reference": body.reference,
+        "new_outstanding": str(new_outstanding),
+        "fully_paid": new_outstanding == Decimal("0.00"),
+    }

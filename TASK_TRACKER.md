@@ -37,6 +37,8 @@
 - [x] Admin order approval
 - [x] GST invoice generation and PDF
 - [x] Dispatch and finished goods stock deduction
+- [x] Payment recording
+- [x] Customer outstanding balance
 
 
 ## Pending
@@ -45,8 +47,7 @@
 - [ ] Partial dispatch and backorder handling
 
 ### Finance and Costing
-- [ ] Payment recording
-- [ ] Customer outstanding balance
+
 - [ ] Production costing
 - [ ] Cost per packet and profit margin calculation
 - [ ] GST summary

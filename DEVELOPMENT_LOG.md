@@ -219,4 +219,25 @@ Implement duplicate purchase request protection (idempotency), execute the bench
 - Benchmark: record ₹4,000 payment, verify outstanding = ₹3,875.
 
 
+### Completed — Payment
+- Implemented payment recording endpoint (`POST /sales/{order_id}/payment`).
+- Payment only allowed on dispatched orders.
+- Overpayment blocked with HTTP 422.
+- Payment inserted into `payments` table.
+- `amount_paid` and `outstanding` updated on `sales_orders`.
+- Multiple payments supported until fully settled.
+
+### Verified Benchmark — Retailer A Payment
+
+| Field | Value |
+|---|---|
+| Invoice total | ₹7,875.00 |
+| Payment recorded | ₹4,000.00 |
+| Outstanding | ₹3,875.00 |
+| Fully paid | false |
+
+### Next — Distributor B benchmark test
+- Create order for 120 packets (Karnataka customer, IGST 5%).
+- Approve — verify IGST calculation.
+- Dispatch — expect failure due to insufficient stock (96 packets available).
 
