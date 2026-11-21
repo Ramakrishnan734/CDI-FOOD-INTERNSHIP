@@ -13,67 +13,53 @@
 - [x] Database connection dependency (`dependencies.py`)
 - [x] Authentication — login and JWT
 - [x] Role-based access control (RBAC)
-- [x] Inventory purchase API
+- [x] Inventory purchase API with idempotency (client_request_id + SHA-256)
 - [x] Stock balance API
-- [x] Purchase input validation
-- [x] Purchase role authorization
-- [x] Shared inventory service for stock locking and WAC retrieval
-- [x] Invalid purchase requests tested
-- [x] Database integrity verified after failed purchase requests
-- [x] FastAPI Swagger documentation verified
-- [x] Authentication and inventory endpoints verified in Swagger
-- [x] Python dependencies checked using `pip check`
-- [x] Purchase API validation tests passed
-- [x] Failed purchase requests verified to leave the database unchanged
-- [x] Database connection and transaction handling reviewed
-- [x] Duplicate purchase request protection (idempotency)
-- [x] Database migration for `client_request_id` and request hash
-- [x] Benchmark purchase execution and WAC verification
-- [x] BOM-based production run API
+- [x] Stock ledger API with running balance (window function)
+- [x] Shared inventory service — WAC retrieval and stock locking
+- [x] Benchmark purchase: 60 kg flour @ ₹45, WAC = ₹43.125 ✅
+- [x] BOM-based production run API (draft → post two-phase)
 - [x] Raw material consumption recording
-- [x] Finished goods production and stock update
-- [x] Yield and material consumption variance calculation
-- [x] Sales order API (salesman/mobile)
-- [x] Admin order approval
-- [x] GST invoice generation and PDF
+- [x] Finished goods output recording
+- [x] Yield and material consumption variance calculation (threshold 3%)
+- [x] Benchmark production run: 188 packets, oil +5% flagged, yield -6% flagged ✅
+- [x] Sales order API (salesman/admin)
+- [x] Admin order approval with stock check
+- [x] GST invoice generation (CGST/SGST for TN, IGST for other states)
+- [x] Invoice PDF generation (WeasyPrint)
 - [x] Dispatch and finished goods stock deduction
-- [x] Payment recording
-- [x] Customer outstanding balance
-- [x] Partial dispatch and backorder handling
-- [x] Stock ledger and inventory reports
-- [x] React frontend setup
-- [x] Login and role-based dashboards
-- [x] Sales order and approval screens
-- [x] Excel export
+- [x] Payment recording and outstanding balance update
+- [x] Benchmark Retailer A: invoice ₹7,875, outstanding ₹3,875 ✅
+- [x] Benchmark Distributor B: shortage 32 packets correctly blocked ✅
+- [x] GET /sales/orders — order listing for admin/owner/auditor
+- [x] Item classification validation (API layer + DB constraint)
+  - RM- → raw, PK- → packaging, FG- → finished
+- [x] React frontend — login, salesman dashboard, admin dashboard
+- [x] Axios JWT interceptor and 401 auto-redirect
+- [x] Excel export — stock ledger report, sales register with GST breakup
+
+## In Progress
+
+- [ ] Production costing report (cost per packet, margin)
+- [ ] GST summary report
 
 ## Pending
 
-### Sales Management
-
-
-### Finance and Costing
-
-- [ ] Production costing
-- [ ] Cost per packet and profit margin calculation
-- [ ] GST summary
-
-### Inventory and Reports
-- [ ] Sales reports
+### Reports
+- [ ] Purchase register report
+- [ ] Outstanding and ageing report
 - [ ] Low-stock alerts
 
 ### Frontend
 - [ ] Inventory management screens
 - [ ] Production management screens
-- [ ] Reports and dashboard
+- [ ] Reports and dashboard screens
 
-### Deployment and Documentation
-- [ ] Docker Compose
-- [ ] README
-- [ ] DESIGN_NOTE
-- [ ] ASSUMPTIONS documentation
-- [ ] Testing and bug fixes
-- [ ] Deployment
+### Deployment and Submission
+- [ ] Docker Compose (single command startup)
+- [ ] README — final setup instructions
+- [ ] DESIGN_NOTE — finalize
+- [ ] ASSUMPTIONS — finalize
 - [ ] Demo video
-
-
-
+- [ ] Deploy backend to Railway
+- [ ] Deploy frontend to Vercel

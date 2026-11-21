@@ -68,3 +68,28 @@ Determined by comparing customers.state_code with seller state at invoice time.
 - PDF: WeasyPrint
 - Excel: openpyxl
 - Deployment: Railway (backend) + Vercel (frontend)
+
+## 7. Item Classification Enforcement
+
+Item codes follow a mandatory prefix convention:
+
+| Prefix | item_type  |
+|--------|-----------|
+| RM-    | raw       |
+| PK-    | packaging |
+| FG-    | finished  |
+
+Enforced at two layers:
+- **API layer** — `validate_item_code_type()` in `inventory.py` checks prefix before INSERT.
+- **DB layer** — `chk_item_code_type_match` CHECK constraint on the `items` table.
+  Prevents bypass via direct SQL inserts or future endpoints.
+
+The sales endpoint retains its own `item_type == 'finished'` check as a third safeguard.
+
+## 8. Purchase Idempotency
+
+The purchase API accepts an optional `client_request_id` header.
+On first call: processes and stores result.
+On replay with same ID + same payload: returns original result, no duplicate write.
+On replay with same ID + different payload: returns 409 Conflict.
+Implemented via `client_request_id` column and SHA-256 request hash on `purchase_orders`.

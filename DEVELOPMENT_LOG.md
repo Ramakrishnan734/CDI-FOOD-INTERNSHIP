@@ -131,6 +131,36 @@ Implement duplicate purchase request protection (idempotency), execute the bench
 | Total cost | ₹4,776.75 |
 | Cost per packet | ₹24.3712 |
 
+### Completed — Item Classification Validation
+
+- Added DB constraint `chk_item_code_type_match` to live database via ALTER TABLE.
+- Updated `backend/app/models/schema.sql` — constraint added inside items table definition.
+- Added `validate_item_code_type()` function in `backend/app/routers/inventory.py`.
+- Added `POST /inventory/items` endpoint with API-layer prefix/type validation.
+- Added `GET /inventory/items` endpoint.
+
+### Validation rule enforced (two layers)
+
+| Code prefix | Required item_type |
+|-------------|-------------------|
+| RM-         | raw               |
+| PK-         | packaging         |
+| FG-         | finished          |
+
+### Test results
+
+| Test | Result |
+|------|--------|
+| POST RM-TEST with item_type=finished | ✅ Rejected (422) at API layer |
+| POST RM-SALT with item_type=raw | ✅ Accepted (201) |
+| Direct psql INSERT with wrong type | ✅ Blocked by DB constraint |
+| GET /inventory/items — all 6 seed items | ✅ All present and correct |
+
+### Files modified
+- `backend/app/models/schema.sql` — constraint added to items table
+- `backend/app/routers/inventory.py` — validate_item_code_type(),
+
+
 ### Next — Day 4
 - Sales order API (salesman creates order).
 - Admin approval and GST invoice generation.
@@ -263,6 +293,8 @@ All four phases implemented and benchmark-verified:
 - Running balance calculated using PostgreSQL window function.
 - Tested with FG-MRK200 and RM-FLOUR — all movements and balances correct.
 - Accessible to all roles.
+
+
 
 ## Day 4 — Benchmark Reset and Verification
 

@@ -161,7 +161,9 @@ API documentation available at: `http://localhost:8000/docs`
 ### Production Run
 | Output | Cost |
 |---|---:|
-| 196 packets (planned 200) | ₹24.3712/packet |
+| 188 packets (planned 200) | ₹31.14/packet |
+| Yield variance | −6% (flagged) |
+| Oil variance | +5% (flagged) |
 
 ### Retailer A — Tamil Nadu
 | Field | Value |
@@ -177,6 +179,6 @@ API documentation available at: `http://localhost:8000/docs`
 | Situation | Result |
 |---|---|
 | Order: 120 packets | Approval blocked |
-| Stock available | 96 packets |
-| Shortage | 24 packets |
+| Stock available | 88 packets |
+| Shortage | 32 packets |
 | GST type if fulfilled | IGST 5% |

@@ -39,3 +39,13 @@
 
 3. All money stored as NUMERIC(15,2) in the database. Python Decimal used
    throughout — no float arithmetic for financial calculations.
+
+11. Item code prefixes are enforced to match item_type:
+    RM- → raw, PK- → packaging, FG- → finished.
+    Enforced at both API layer and database constraint level.
+    Items without a recognised prefix are permitted but no prefix rule applies.
+
+12. Purchase API is idempotent: a client_request_id + SHA-256 payload hash
+    prevents duplicate purchase orders on network retry.
+    Same ID + same payload → returns original result (200).
+    Same ID + different payload → rejected (409).
