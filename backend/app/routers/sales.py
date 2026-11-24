@@ -196,9 +196,9 @@ def create_sales_order(
 
 @router.post("/{order_id}/approve", status_code=200)
 def approve_sales_order(
-    order_id: int,
-    conn=Depends(get_db),
-    user=Depends(require_role("admin")),
+    order_id: int,# from URL
+    conn=Depends(get_db),# FastAPI provides the database connection 
+    user=Depends(require_role("admin")), # check
 ):
     with conn.begin():
 

@@ -31,7 +31,12 @@ CREATE TABLE IF NOT EXISTS items (
                 CHECK (item_type IN ('raw','packaging','finished')),
     unit        VARCHAR(10)  NOT NULL,
     hsn_code    VARCHAR(10),          -- required on GST invoices for finished goods
-    is_active   BOOLEAN      NOT NULL DEFAULT true
+    is_active   BOOLEAN      NOT NULL DEFAULT true,
+    CONSTRAINT chk_item_code_type_match CHECK (
+        (code LIKE 'RM-%' AND item_type = 'raw')
+        OR (code LIKE 'PK-%' AND item_type = 'packaging')
+        OR (code LIKE 'FG-%' AND item_type = 'finished')
+    )
 );
 
 -- -------------------------

@@ -366,3 +366,105 @@ def get_stock_ledger(
             for r in rows
         ],
     }
+
+# ------------------------------------------------------------------
+# Item code → type validation
+# ------------------------------------------------------------------
+
+PREFIX_TYPE_MAP = {
+    "RM-": "raw",
+    "PK-": "packaging",
+    "FG-": "finished",
+}
+
+
+def validate_item_code_type(code: str, item_type: str):
+    """
+    Enforces that item code prefix matches item_type.
+    RM- → raw | PK- → packaging | FG- → finished
+    Raises HTTPException 422 on mismatch.
+    """
+    for prefix, expected_type in PREFIX_TYPE_MAP.items():
+        if code.upper().startswith(prefix):
+            if item_type != expected_type:
+                raise HTTPException(
+                    status_code=422,
+                    detail=(
+                        f"Item code '{code}' starts with '{prefix}' "
+                        f"and must be classified as '{expected_type}', "
+                        f"not '{item_type}'."
+                    ),
+                )
+            return  # prefix matched and type is correct
+    # No known prefix — still allow, but warn in the future if needed
+    # For now: unrecognised prefixes pass through (they don't exist in this system)
+
+
+# ------------------------------------------------------------------
+# POST /inventory/items
+# Roles: admin only
+# ------------------------------------------------------------------
+
+class CreateItemRequest(BaseModel):
+    code: str
+    name: str
+    item_type: str
+    unit: str
+    hsn_code: str = ""
+
+
+@router.post("/items", status_code=201)
+def create_item(
+    body: CreateItemRequest,
+    conn=Depends(get_db),
+    user=Depends(require_role("admin")),
+):
+    # API-layer prefix/type validation
+    validate_item_code_type(body.code, body.item_type)
+
+    if body.item_type not in ("raw", "packaging", "finished"):
+        raise HTTPException(status_code=422, detail="item_type must be raw, packaging, or finished")
+
+    with conn.begin():
+        try:
+            item_id = conn.execute(
+                text("""
+                    INSERT INTO items (code, name, item_type, unit, hsn_code)
+                    VALUES (:code, :name, :item_type, :unit, :hsn_code)
+                    RETURNING id
+                """),
+                {
+                    "code": body.code.upper(),
+                    "name": body.name,
+                    "item_type": body.item_type,
+                    "unit": body.unit,
+                    "hsn_code": body.hsn_code or None,
+                },
+            ).scalar_one()
+        except Exception as e:
+            if "chk_item_code_type_match" in str(e):
+                # DB constraint caught it (e.g. direct insert bypassing API)
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Item code prefix does not match item_type '{body.item_type}'."
+                )
+            if "unique" in str(e).lower():
+                raise HTTPException(status_code=409, detail=f"Item code '{body.code}' already exists.")
+            raise
+
+    return {"item_id": item_id, "code": body.code.upper(), "name": body.name, "item_type": body.item_type}
+
+
+# ------------------------------------------------------------------
+# GET /inventory/items
+# All authenticated roles
+# ------------------------------------------------------------------
+
+@router.get("/items")
+def list_items(conn=Depends(get_db), user=Depends(require_role(
+    "admin", "production", "salesman", "auditor", "owner"
+))):
+    rows = conn.execute(text(
+        "SELECT id, code, name, item_type, unit, hsn_code, is_active FROM items ORDER BY item_type, code"
+    )).fetchall()
+    return [dict(r._mapping) for r in rows]
