@@ -391,3 +391,178 @@ def export_gst_summary(
         wb,
         f"gst_summary_{date.today()}.xlsx",
     )
+
+
+# ------------------------------------------------------------------
+# GET /reports/purchases
+# Purchase register export — posted purchase orders and line details
+# Roles: admin, owner, auditor
+# ------------------------------------------------------------------
+
+@router.get("/purchases")
+def export_purchase_register(
+    conn=Depends(get_db),
+    user=Depends(require_role("admin", "owner", "auditor")),
+):
+    rows = conn.execute(text("""
+        SELECT
+            po.id AS purchase_order_id,
+            po.order_date,
+            s.name AS supplier_name,
+            i.code AS item_code,
+            i.name AS item_name,
+            i.unit,
+            pl.qty,
+            pl.unit_rate,
+            (pl.qty * pl.unit_rate) AS line_total
+        FROM purchase_orders po
+        JOIN purchase_lines pl ON pl.po_id = po.id
+        JOIN items i ON i.id = pl.item_id
+        LEFT JOIN suppliers s ON s.id = po.supplier_id
+        WHERE po.status = 'posted'
+        ORDER BY po.order_date, po.id, pl.id
+    """)).fetchall()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Purchase Register"
+
+    headers = [
+        "PO No.", "Purchase Date", "Supplier",
+        "Item Code", "Item Name", "Unit",
+        "Quantity", "Unit Rate (₹)", "Line Total (₹)",
+    ]
+    widths = [12, 15, 22, 14, 22, 10, 14, 16, 17]
+    _header_row(ws, headers, widths)
+
+    grand_total = Decimal("0")
+
+    for row_num, r in enumerate(rows, 2):
+        qty = Decimal(str(r.qty))
+        rate = Decimal(str(r.unit_rate))
+        line_total = qty * rate
+        grand_total += line_total
+
+        values = [
+            r.purchase_order_id,
+            str(r.order_date),
+            r.supplier_name or "—",
+            r.item_code,
+            r.item_name,
+            r.unit,
+            float(qty),
+            float(rate),
+            float(line_total),
+        ]
+
+        for col_num, value in enumerate(values, 1):
+            ws.cell(row=row_num, column=col_num, value=value)
+
+    total_row = len(rows) + 2
+    ws.cell(row=total_row, column=8, value="Grand Total")
+    ws.cell(row=total_row, column=9, value=float(grand_total))
+    ws.cell(row=total_row, column=8).font = Font(bold=True)
+    ws.cell(row=total_row, column=9).font = Font(bold=True)
+
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = f"A1:I{len(rows) + 1}"
+
+    return _make_response(wb, f"purchase_register_{date.today()}.xlsx")
+
+
+# ------------------------------------------------------------------
+# GET /reports/outstanding-ageing
+# Outstanding invoice register with invoice-age buckets
+# Roles: admin, owner, auditor
+# ------------------------------------------------------------------
+
+@router.get("/outstanding-ageing")
+def export_outstanding_ageing(
+    conn=Depends(get_db),
+    user=Depends(require_role("admin", "owner", "auditor")),
+):
+    rows = conn.execute(text("""
+        SELECT
+            so.id AS order_id,
+            so.order_number,
+            so.invoice_number,
+            so.invoice_date,
+            c.name AS customer_name,
+            c.contact AS customer_contact,
+            so.invoice_total,
+            so.amount_paid,
+            COALESCE(so.outstanding, 0) AS outstanding,
+            (CURRENT_DATE - so.invoice_date) AS age_days,
+            CASE
+                WHEN CURRENT_DATE - so.invoice_date <= 30 THEN '0-30 days'
+                WHEN CURRENT_DATE - so.invoice_date <= 60 THEN '31-60 days'
+                WHEN CURRENT_DATE - so.invoice_date <= 90 THEN '61-90 days'
+                ELSE '90+ days'
+            END AS age_bucket
+        FROM sales_orders so
+        JOIN customers c ON c.id = so.customer_id
+        WHERE so.status = 'dispatched'
+          AND so.invoice_number IS NOT NULL
+          AND so.invoice_date IS NOT NULL
+          AND COALESCE(so.outstanding, 0) > 0
+        ORDER BY so.invoice_date, so.id
+    """)).fetchall()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Outstanding Ageing"
+
+    headers = [
+        "Order No.", "Invoice No.", "Invoice Date",
+        "Customer", "Contact", "Invoice Total (₹)",
+        "Amount Paid (₹)", "Outstanding (₹)",
+        "Invoice Age (Days)", "Age Bucket",
+    ]
+    widths = [16, 18, 15, 24, 18, 20, 20, 20, 20, 16]
+    _header_row(ws, headers, widths)
+
+    total_invoice = Decimal("0")
+    total_paid = Decimal("0")
+    total_outstanding = Decimal("0")
+
+    for row_num, r in enumerate(rows, 2):
+        invoice_total = Decimal(str(r.invoice_total or 0))
+        amount_paid = Decimal(str(r.amount_paid or 0))
+        outstanding = Decimal(str(r.outstanding or 0))
+
+        total_invoice += invoice_total
+        total_paid += amount_paid
+        total_outstanding += outstanding
+
+        values = [
+            r.order_number,
+            r.invoice_number,
+            str(r.invoice_date),
+            r.customer_name,
+            r.customer_contact or "—",
+            float(invoice_total),
+            float(amount_paid),
+            float(outstanding),
+            int(r.age_days),
+            r.age_bucket,
+        ]
+
+        for col_num, value in enumerate(values, 1):
+            ws.cell(row=row_num, column=col_num, value=value)
+
+    total_row = len(rows) + 2
+    ws.cell(row=total_row, column=5, value="Grand Total")
+    ws.cell(row=total_row, column=6, value=float(total_invoice))
+    ws.cell(row=total_row, column=7, value=float(total_paid))
+    ws.cell(row=total_row, column=8, value=float(total_outstanding))
+
+    for col_num in range(5, 9):
+        ws.cell(row=total_row, column=col_num).font = Font(bold=True)
+
+    ws.freeze_panes = "A2"
+    ws.auto_filter.ref = f"A1:J{len(rows) + 1}"
+
+    return _make_response(
+        wb,
+        f"outstanding_ageing_{date.today()}.xlsx",
+    )

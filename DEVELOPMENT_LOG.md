@@ -377,3 +377,22 @@ All four phases implemented and benchmark-verified:
 - Both endpoints returned HTTP 200 with the Excel spreadsheet content type.
 - Downloaded files were recognized as valid Microsoft Excel 2007+ workbooks.
 - Tests used the isolated test stack; preserved databases were not modified.
+
+
+## Purchase Register Report Verification — November 24, 2026
+
+- Added `GET /reports/purchases` to export posted purchase order lines with supplier, item, quantity, unit rate, and line total.
+- Registered endpoint confirmed in OpenAPI.
+- Authenticated against the isolated `cdi-food-schema-test` API using the seeded admin account.
+- Endpoint returned HTTP 200 and the downloaded file was recognized as a valid Microsoft Excel 2007+ workbook.
+- Tests used the isolated test stack; preserved databases were not modified.
+
+## Outstanding and Ageing Report Verification — November 24, 2026
+
+- Added `GET /reports/outstanding-ageing` to export dispatched invoices with outstanding balances and invoice-age buckets.
+- Registered endpoint confirmed in OpenAPI.
+- Authenticated against the isolated `cdi-food-schema-test` API using the seeded admin account.
+- Endpoint returned HTTP 200.
+- Downloaded workbook was recognized as Microsoft Excel 2007+.
+- ZIP integrity check passed for all workbook contents.
+- Tests used the isolated test stack; preserved databases were not modified.

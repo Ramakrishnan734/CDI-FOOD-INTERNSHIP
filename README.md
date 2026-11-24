@@ -156,6 +156,8 @@ preserving that volume, run `docker compose down` (without `-v`).
 | GET | `/reports/sales` | admin, owner, auditor | Download the sales register as Excel |
 | GET | `/reports/production-costing` | admin, owner, auditor | Download production costs and indicative product margins as Excel |
 | GET | `/reports/gst-summary` | admin, owner, auditor | Download GST totals grouped by invoice date as Excel |
+| GET | `/reports/purchases` | admin, owner, auditor | Download posted purchase lines as a Purchase Register Excel report |
+| GET | `/reports/outstanding-ageing` | admin, owner, auditor | Download outstanding dispatched invoices with invoice-age buckets as Excel |
 
 ---
 

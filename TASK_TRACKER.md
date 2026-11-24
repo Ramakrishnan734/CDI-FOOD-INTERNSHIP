@@ -46,8 +46,8 @@
 ## Pending
 
 ### Reports
-- [ ] Purchase register report
-- [ ] Outstanding and ageing report
+- [x] Purchase register report — authenticated Excel download verified
+- [x] Outstanding and ageing report — authenticated Excel download verified
 - [ ] Low-stock alerts
 
 ### Frontend
