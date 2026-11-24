@@ -105,6 +105,18 @@ export default function AdminDashboard() {
           <div className="text-gray-400 text-xs">{name}</div>
         </div>
         <div className="flex gap-2">
+          <button onClick={() => navigate('/inventory')}
+            className="bg-gray-700 text-xs px-3 py-1 rounded">
+            Inventory
+          </button>
+          <button onClick={() => navigate('/production')}
+            className="bg-gray-700 text-xs px-3 py-1 rounded">
+            Production
+          </button>
+          <button onClick={() => navigate('/reports')}
+            className="bg-gray-700 text-xs px-3 py-1 rounded">
+            Reports
+          </button>
           <button onClick={() => navigate('/salesman')}
             className="bg-gray-700 text-xs px-3 py-1 rounded">
             Salesman View
