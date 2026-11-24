@@ -20,7 +20,7 @@ Salesman creates order → admin approves and generates GST invoice → dispatch
 
 | Layer | Technology |
 |---|---|
-| Backend | Python 3.14 + FastAPI |
+| Backend | Python 3.12 (Docker) + FastAPI |
 | Database | PostgreSQL 16 |
 | DB Access | SQLAlchemy Core (raw SQL) |
 | Auth | JWT + bcrypt |
@@ -62,7 +62,7 @@ CDI-FOOD-INTERNSHIP/
 ## Local Setup
 
 ### Prerequisites
-- Python 3.14
+- Python 3.12 or later
 - PostgreSQL 16
 - Node.js 20 (for frontend)
 
@@ -130,6 +130,8 @@ preserving that volume, run `docker compose down` (without `-v`).
 | POST | `/inventory/purchase` | admin, production | Record a purchase |
 | GET | `/inventory/balance` | all | Current stock balances |
 | GET | `/inventory/ledger?item_code=XX` | all | Stock ledger with running balance |
+| POST | `/inventory/items` | admin | Create an item with code/type validation |
+| GET | `/inventory/items` | all | List items |
 
 ### Production
 | Method | Endpoint | Role | Description |
@@ -144,6 +146,16 @@ preserving that volume, run `docker compose down` (without `-v`).
 | POST | `/sales/{id}/approve` | admin | Approve order and generate GST invoice |
 | POST | `/sales/{id}/dispatch` | admin | Dispatch and deduct stock |
 | POST | `/sales/{id}/payment` | admin | Record payment |
+| GET | `/sales/orders` | admin, owner, auditor | List sales orders |
+| GET | `/sales/{id}/invoice/pdf` | admin, owner, auditor | Download GST invoice PDF |
+
+### Reports
+| Method | Endpoint | Role | Description |
+|---|---|---|---|
+| GET | `/reports/stock` | admin, owner, auditor, production | Download the stock ledger as Excel |
+| GET | `/reports/sales` | admin, owner, auditor | Download the sales register as Excel |
+| GET | `/reports/production-costing` | admin, owner, auditor | Download production costs and indicative product margins as Excel |
+| GET | `/reports/gst-summary` | admin, owner, auditor | Download GST totals grouped by invoice date as Excel |
 
 ---
 
@@ -170,19 +182,27 @@ preserving that volume, run `docker compose down` (without `-v`).
 
 ---
 
-## Benchmark Results
+## Current Preserved Test-Stack Snapshot
+
+The following figures were read without modification from the preserved test
+stack on November 24, 2026. They are the current runtime state, not a fresh
+seed baseline.
 
 ### Flour Purchase
 | Item | Opening | Purchased | Balance | WAC |
 |---|---:|---:|---:|---:|
-| RM-FLOUR | 100 kg | 60 kg | 160 kg | ₹43.1250/kg |
+| RM-FLOUR | 100 kg | 60 kg | 120 kg | ₹43.5000/kg |
+
+The ledger records the production issue before the ₹45/kg purchase, so this
+current WAC differs from the historical target calculation documented in
+`DESIGN_NOTE.md`.
 
 ### Production Run
 | Output | Cost |
 |---|---:|
-| 188 packets (planned 200) | ₹31.14/packet |
-| Yield variance | −6% (flagged) |
-| Oil variance | +5% (flagged) |
+| 188 packets (planned 200) | ₹30.9043/packet |
+| Yield variance | −6% (recorded in the historical benchmark) |
+| Oil variance | +5% (recorded in the historical benchmark) |
 
 ### Retailer A — Tamil Nadu
 | Field | Value |
@@ -197,7 +217,7 @@ preserving that volume, run `docker compose down` (without `-v`).
 ### Distributor B — Karnataka
 | Situation | Result |
 |---|---|
-| Order: 120 packets | Approval blocked |
+| Order: 120 packets | Pending; approval was not exercised in the current audit |
 | Stock available | 88 packets |
 | Shortage | 32 packets |
 | GST type if fulfilled | IGST 5% |

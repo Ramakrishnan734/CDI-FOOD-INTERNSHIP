@@ -121,6 +121,8 @@ CREATE TABLE IF NOT EXISTS purchase_orders (
     status        VARCHAR(10) NOT NULL DEFAULT 'posted'
                   CHECK (status IN ('posted','cancelled')),
     created_by    INTEGER     REFERENCES users(id),
+    client_request_id VARCHAR(100) UNIQUE,
+    request_hash      VARCHAR(64),
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

@@ -347,3 +347,33 @@ All four phases implemented and benchmark-verified:
 - Original PostgreSQL container is healthy and published on port 5433.
 - Original API container is running and `http://localhost:8001/docs` returned HTTP 200.
 - The original `cdi-food-internship_postgres_data` database has the schema but zero rows in the inspected master and business tables; no seed or business data was added.
+
+## Source-and-Documentation Audit — November 24, 2026
+
+### Verified runtime evidence
+- The preserved tested copy authenticated successfully and returned six balances, two sales orders, the flour ledger, both Excel reports, and the Retailer A invoice PDF without modifying data.
+- Its current final balances match the recorded stock totals: FG-MRK200 88, RM-FLOUR 120, RM-OIL 19.5, RM-SPICE 3.8, PK-POUCH 306, and PK-CARTON 21.
+- Its current ledger sequence posts production before the flour purchase. The current flour WAC is ₹43.5000 and production output rate is ₹30.9043, so the historical target values ₹43.1250 and ₹31.1436 are not current-runtime verification.
+
+### Gap identified during source audit (resolved in verification below)
+- At the time of this audit, fresh `schema.sql` created `purchase_orders` without `client_request_id` and `request_hash`, although the purchase API required both. The preserved test database had the columns from an earlier migration.
+
+
+## Fresh-schema Purchase Verification — November 24, 2026
+
+- Added `client_request_id VARCHAR(100)` and `request_hash VARCHAR(64)` to the fresh `purchase_orders` schema, with a unique constraint on `client_request_id`.
+- Built and initialized an isolated Compose test stack with a separate database volume; seeded opening stock and verified the benchmark balances.
+- Authenticated as the seeded admin user through the isolated API.
+- Created a test purchase of 2 kg Rice Flour at ₹45/kg: HTTP 201, purchase order ID 1, flour balance 102 kg, WAC ₹42.0588/kg.
+- Replayed the exact request: HTTP 200, same purchase order ID and unchanged balance.
+- Reused the request ID with quantity 3: HTTP 409 Conflict.
+- Direct database verification confirmed exactly 1 purchase order, 1 purchase line, 1 purchase ledger entry, and flour balance 102 kg.
+- All tests were performed against the isolated `cdi-food-schema-test` stack; preserved databases were not modified.
+
+## Report API Verification — November 24, 2026
+
+- Confirmed `/reports/production-costing` and `/reports/gst-summary` are registered in OpenAPI.
+- Authenticated against the isolated `cdi-food-schema-test` API using the seeded admin account.
+- Both endpoints returned HTTP 200 with the Excel spreadsheet content type.
+- Downloaded files were recognized as valid Microsoft Excel 2007+ workbooks.
+- Tests used the isolated test stack; preserved databases were not modified.

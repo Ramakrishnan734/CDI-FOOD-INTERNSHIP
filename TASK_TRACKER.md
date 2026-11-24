@@ -1,7 +1,7 @@
 # CDI Food ERP — Task Tracker
 
 ## Completed
-
+- [x] Purchase workflow from a fresh schema — idempotency columns and purchase replay/conflict behavior verified on an isolated fresh Compose database
 - [x] PostgreSQL setup and database creation
 - [x] Python virtual environment and dependencies installed
 - [x] Project folder structure
@@ -13,7 +13,7 @@
 - [x] Database connection dependency (`dependencies.py`)
 - [x] Authentication — login and JWT
 - [x] Role-based access control (RBAC)
-- [x] Inventory purchase API with idempotency (client_request_id + SHA-256)
+- [x] Inventory purchase API with idempotency (`client_request_id` + SHA-256)
 - [x] Stock balance API
 - [x] Stock ledger API with running balance (window function)
 - [x] Shared inventory service — WAC retrieval and stock locking
@@ -40,9 +40,8 @@
 - [x] Docker Compose — parallel startup verified (PostgreSQL 5433, API 8001)
 
 ## In Progress
-
-- [ ] Production costing report (cost per packet, margin)
-- [ ] GST summary report
+- [x] Production costing report — authenticated Excel download verified
+- [x] GST summary report — authenticated Excel download verified
 
 ## Pending
 
@@ -57,6 +56,7 @@
 - [ ] Reports and dashboard screens
 
 ### Deployment and Submission
+- [ ] Frontend-to-original-Docker integration — Vite proxy targets `localhost:8000`, while the original Compose API is on `localhost:8001`
 - [ ] README — final setup instructions
 - [ ] DESIGN_NOTE — finalize
 - [ ] ASSUMPTIONS — finalize

@@ -169,3 +169,225 @@ def export_sales_register(
         ws.cell(row=row_num, column=15, value=r.status)
 
     return _make_response(wb, f"sales_register_{date.today()}.xlsx")
+
+# ------------------------------------------------------------------
+# GET /reports/production-costing
+# Production costing and indicative product margin report
+# Roles: admin, owner, auditor
+# ------------------------------------------------------------------
+
+@router.get("/production-costing")
+def export_production_costing(
+    conn=Depends(get_db),
+    user=Depends(require_role("admin", "owner", "auditor")),
+):
+    rows = conn.execute(text("""
+        WITH output_cost AS (
+            SELECT
+                sl.ref_id AS run_id,
+                sl.item_id,
+                SUM(sl.qty_in) AS output_qty,
+                MAX(sl.rate) AS cost_per_packet
+            FROM stock_ledger sl
+            WHERE sl.movement_type = 'production_output'
+              AND sl.ref_type = 'production_run'
+            GROUP BY sl.ref_id, sl.item_id
+        ),
+        material_cost AS (
+            SELECT
+                sl.ref_id AS run_id,
+                SUM(sl.qty_out * COALESCE(sl.rate, 0)) AS material_cost
+            FROM stock_ledger sl
+            WHERE sl.movement_type = 'production_issue'
+              AND sl.ref_type = 'production_run'
+            GROUP BY sl.ref_id
+        ),
+        selling_price AS (
+            SELECT
+                sol.item_id,
+                SUM(sol.line_total) / NULLIF(SUM(sol.qty), 0)
+                    AS average_selling_price
+            FROM sales_order_lines sol
+            JOIN sales_orders so ON so.id = sol.order_id
+            WHERE so.invoice_number IS NOT NULL
+            GROUP BY sol.item_id
+        )
+        SELECT
+            pr.id AS run_id,
+            pr.run_date,
+            i.code AS item_code,
+            i.name AS item_name,
+            pr.planned_output,
+            pr.actual_output,
+            pr.damaged_qty,
+            COALESCE(mc.material_cost, 0) AS material_cost,
+            COALESCE(pr.labour_cost, 0) AS labour_cost,
+            COALESCE(pr.overhead_cost, 0) AS overhead_cost,
+            oc.cost_per_packet,
+            sp.average_selling_price
+        FROM production_runs pr
+        JOIN bom_headers b ON b.id = pr.bom_id
+        JOIN items i ON i.id = b.finished_item_id
+        JOIN output_cost oc
+          ON oc.run_id = pr.id
+         AND oc.item_id = b.finished_item_id
+        LEFT JOIN material_cost mc ON mc.run_id = pr.id
+        LEFT JOIN selling_price sp ON sp.item_id = b.finished_item_id
+        WHERE pr.status = 'posted'
+        ORDER BY pr.run_date, pr.id
+    """)).fetchall()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Production Costing"
+
+    headers = [
+        "Run ID",
+        "Run Date",
+        "FG Code",
+        "FG Name",
+        "Planned Output",
+        "Actual Output",
+        "Damaged Qty",
+        "Material Cost (₹)",
+        "Labour Cost (₹)",
+        "Overhead Cost (₹)",
+        "Total Cost (₹)",
+        "Cost per Packet (₹)",
+        "Average Selling Price (₹)",
+        "Gross Margin per Packet (₹)",
+        "Gross Margin (%)",
+    ]
+
+    widths = [10, 14, 14, 22, 16, 16, 14, 18, 18, 18, 18, 20, 24, 26, 18]
+    _header_row(ws, headers, widths)
+
+    for row_num, r in enumerate(rows, 2):
+        material_cost = float(r.material_cost or 0)
+        labour_cost = float(r.labour_cost or 0)
+        overhead_cost = float(r.overhead_cost or 0)
+
+        total_cost = material_cost + labour_cost + overhead_cost
+
+        cost_per_packet = (
+            float(r.cost_per_packet)
+            if r.cost_per_packet is not None
+            else None
+        )
+
+        average_selling_price = (
+            float(r.average_selling_price)
+            if r.average_selling_price is not None
+            else None
+        )
+
+        # Margin is product-level and indicative, not batch-specific.
+        gross_margin = None
+        gross_margin_percent = None
+
+        if cost_per_packet is not None and average_selling_price is not None:
+            gross_margin = average_selling_price - cost_per_packet
+
+            if average_selling_price != 0:
+                gross_margin_percent = (
+                    gross_margin / average_selling_price
+                ) * 100
+
+        values = [
+            r.run_id,
+            str(r.run_date),
+            r.item_code,
+            r.item_name,
+            float(r.planned_output or 0),
+            float(r.actual_output or 0),
+            float(r.damaged_qty or 0),
+            material_cost,
+            labour_cost,
+            overhead_cost,
+            total_cost,
+            cost_per_packet,
+            average_selling_price,
+            gross_margin,
+            gross_margin_percent,
+        ]
+
+        for col_num, value in enumerate(values, 1):
+            ws.cell(row=row_num, column=col_num, value=value)
+
+    return _make_response(
+        wb,
+        f"production_costing_{date.today()}.xlsx",
+    )
+
+
+# ------------------------------------------------------------------
+# GET /reports/gst-summary
+# GST summary grouped by invoice date
+# Roles: admin, owner, auditor
+# ------------------------------------------------------------------
+
+@router.get("/gst-summary")
+def export_gst_summary(
+    conn=Depends(get_db),
+    user=Depends(require_role("admin", "owner", "auditor")),
+):
+    rows = conn.execute(text("""
+        SELECT
+            so.invoice_date,
+            COUNT(DISTINCT so.invoice_number) AS invoice_count,
+            COALESCE(SUM(so.taxable_value), 0) AS taxable_value,
+            COALESCE(SUM(so.cgst_amount), 0) AS cgst_amount,
+            COALESCE(SUM(so.sgst_amount), 0) AS sgst_amount,
+            COALESCE(SUM(so.igst_amount), 0) AS igst_amount,
+            COALESCE(
+                SUM(
+                    COALESCE(so.cgst_amount, 0)
+                    + COALESCE(so.sgst_amount, 0)
+                    + COALESCE(so.igst_amount, 0)
+                ),
+                0
+            ) AS total_gst,
+            COALESCE(SUM(so.invoice_total), 0) AS invoice_total
+        FROM sales_orders so
+        WHERE so.invoice_number IS NOT NULL
+        GROUP BY so.invoice_date
+        ORDER BY so.invoice_date
+    """)).fetchall()
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "GST Summary"
+
+    headers = [
+        "Invoice Date",
+        "Invoice Count",
+        "Taxable Value (₹)",
+        "CGST (₹)",
+        "SGST (₹)",
+        "IGST (₹)",
+        "Total GST (₹)",
+        "Invoice Total (₹)",
+    ]
+
+    widths = [16, 16, 22, 16, 16, 16, 20, 22]
+    _header_row(ws, headers, widths)
+
+    for row_num, r in enumerate(rows, 2):
+        values = [
+            str(r.invoice_date) if r.invoice_date else "",
+            int(r.invoice_count or 0),
+            float(r.taxable_value or 0),
+            float(r.cgst_amount or 0),
+            float(r.sgst_amount or 0),
+            float(r.igst_amount or 0),
+            float(r.total_gst or 0),
+            float(r.invoice_total or 0),
+        ]
+
+        for col_num, value in enumerate(values, 1):
+            ws.cell(row=row_num, column=col_num, value=value)
+
+    return _make_response(
+        wb,
+        f"gst_summary_{date.today()}.xlsx",
+    )

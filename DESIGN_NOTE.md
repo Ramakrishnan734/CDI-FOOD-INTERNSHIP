@@ -46,7 +46,7 @@ On each purchase:
 
 This new_wac is stored on the stock_ledger row and used in costing.
 
-For the benchmark:
+For the intended benchmark calculation:
   Flour opening: 100 kg @ ₹42 = ₹4,200
   Flour purchase: 60 kg @ ₹45 = ₹2,700
   WAC = (4200 + 2700) / (100 + 60) = ₹43.125/kg
@@ -61,7 +61,7 @@ Determined by comparing customers.state_code with seller state at invoice time.
 
 ## 6. Technology Stack
 
-- Backend: FastAPI + Python 3.14
+- Backend: FastAPI + Python 3.12 in Docker
 - Database: PostgreSQL 16 with SQLAlchemy Core (raw SQL, no ORM)
 - Frontend: React + Vite + Tailwind CSS + shadcn/ui
 - Auth: JWT (python-jose + bcrypt)
@@ -93,3 +93,8 @@ On first call: processes and stores result.
 On replay with same ID + same payload: returns original result, no duplicate write.
 On replay with same ID + different payload: returns 409 Conflict.
 Implemented via `client_request_id` column and SHA-256 request hash on `purchase_orders`.
+
+Fresh-schema verification: the checked-in `schema.sql` includes both
+`client_request_id` and `request_hash`. The purchase endpoint was verified on an
+isolated fresh Compose database, including successful creation, exact replay,
+and rejection of a changed payload with the same request ID.

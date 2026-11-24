@@ -22,30 +22,39 @@
 
 7. Variance tolerance is 3%. Variances beyond ±3% are flagged.
 
-8. Posted production runs and dispatched invoices cannot be deleted.
-   Corrections require an adjustment entry or credit note.
+8. The API exposes no delete endpoints for posted production runs or dispatched
+   invoices. A database-enforced correction, adjustment, or credit-note workflow
+   is not implemented.
 
 9. Invoice numbering format: INV-FY2627-0001 (financial year 2026-27).
 
-10. Salesman can only see their own orders. Admin sees all orders.
+10. Salesman order history is not implemented. The only order-list endpoint is
+    available to admin, owner, and auditor roles; admin can see all orders.
 
 ## Technical assumptions
 
-1. Passwords are hashed with bcrypt in the backend. Seed data uses placeholder
-   hashes — real hashing is applied at runtime via the auth service.
+1. Passwords are hashed with bcrypt. The seed script generates bcrypt hashes
+   when it runs.
 
-2. No Alembic migrations for now. Schema is managed via schema.sql.
-   Re-running seed.py on a fresh database recreates everything correctly.
+2. No Alembic migrations are used. `schema.sql` is the fresh-schema source of
+   truth and includes the purchase-idempotency columns required by the API.
+   The seed script is intended for a fresh database and is not a repeatable
+   reset procedure.
 
-3. All money stored as NUMERIC(15,2) in the database. Python Decimal used
-   throughout — no float arithmetic for financial calculations.
+3. Monetary rates and inventory valuation use NUMERIC(15,4); invoice and
+   payment totals use NUMERIC(15,2). Python Decimal is used in financial
+   calculations; report exports convert values to floats for Excel output.
 
 11. Item code prefixes are enforced to match item_type:
     RM- → raw, PK- → packaging, FG- → finished.
     Enforced at both API layer and database constraint level.
-    Items without a recognised prefix are permitted but no prefix rule applies.
+    The current database constraint requires one of these recognised prefixes.
+    The API validation allows an unknown prefix through, but the database rejects
+    it; unknown-prefix items therefore cannot be created.
 
 12. Purchase API is idempotent: a client_request_id + SHA-256 payload hash
     prevents duplicate purchase orders on network retry.
     Same ID + same payload → returns original result (200).
     Same ID + different payload → rejected (409).
+    The required columns are included in the checked-in fresh schema and the
+    behavior was verified against an isolated fresh Compose database.

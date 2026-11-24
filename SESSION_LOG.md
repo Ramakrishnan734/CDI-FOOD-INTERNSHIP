@@ -554,3 +554,17 @@ The cost per packet (₹31.1436) differs from a simple calculation because:
 - Added required WeasyPrint system libraries to the backend image and retained the cached Python dependency layer during rebuilds.
 - Verified original database health, API docs at `http://localhost:8001/docs` (HTTP 200), and that the original database is empty; no data was seeded.
 - Confirmed the tested-copy containers and `cdi-food-internship3_postgres_data` volume were not modified.
+
+---
+
+## Source-and-Documentation Audit — November 24, 2026
+
+- Read-only checks verified the preserved test stack's authentication, balances, order list, ledger, Excel exports, and invoice PDF.
+- The current preserved data retains the documented final stock balances and Retailer A totals, but its ledger records production before the flour purchase. Its actual flour WAC is ₹43.5000 and production output rate is ₹30.9043; earlier ₹43.1250 and ₹31.1436 figures remain historical target calculations, not the current runtime state.
+- A fresh Compose database lacks the two `purchase_orders` idempotency columns required by the purchase API. This is documented as an unresolved source-schema gap; no source-code change was made during this audit.
+
+## Fresh-Schema Purchase Fix — November 24, 2026
+
+- Added `client_request_id` and `request_hash` to the checked-in `purchase_orders` schema.
+- Verified the purchase endpoint on an isolated fresh Compose database: initial purchase succeeded, exact replay returned the original result without duplicate writes, and a changed payload with the same request ID returned HTTP 409.
+- This follow-up resolves the fresh-schema gap noted in the earlier audit. Preserved databases were not modified.
