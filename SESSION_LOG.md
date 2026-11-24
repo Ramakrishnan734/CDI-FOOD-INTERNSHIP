@@ -545,3 +545,12 @@ The cost per packet (₹31.1436) differs from a simple calculation because:
 - Opening 50 FG packets have rate = 0 (assumption 4)
 - WAC for dispatch is blended across opening + produced stock
 - All variances are within expected ranges given actual vs planned quantities
+
+---
+
+## Docker Compose Session — November 24, 2026
+
+- Updated the original Compose configuration to use generated container names, PostgreSQL host port 5433, and API host port 8001 so it can run beside the tested copy.
+- Added required WeasyPrint system libraries to the backend image and retained the cached Python dependency layer during rebuilds.
+- Verified original database health, API docs at `http://localhost:8001/docs` (HTTP 200), and that the original database is empty; no data was seeded.
+- Confirmed the tested-copy containers and `cdi-food-internship3_postgres_data` volume were not modified.

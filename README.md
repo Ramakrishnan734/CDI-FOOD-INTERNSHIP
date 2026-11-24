@@ -98,6 +98,25 @@ API documentation available at: `http://localhost:8000/docs`
 
 ---
 
+### Docker Compose
+
+Start the containerized backend and database:
+
+```bash
+docker compose up -d --build
+```
+
+The Compose environment is configured to run alongside another local CDI Food
+stack: PostgreSQL is published on `localhost:5433` and API documentation is at
+`http://localhost:8001/docs`. The containers still communicate internally as
+`db:5432`.
+
+On a fresh `cdi-food-internship_postgres_data` volume, Compose initializes the
+schema but does not seed master or business data. To stop the containers while
+preserving that volume, run `docker compose down` (without `-v`).
+
+---
+
 ## API Endpoints
 
 ### Authentication

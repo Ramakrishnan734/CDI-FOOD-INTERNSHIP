@@ -37,6 +37,7 @@
 - [x] React frontend — login, salesman dashboard, admin dashboard
 - [x] Axios JWT interceptor and 401 auto-redirect
 - [x] Excel export — stock ledger report, sales register with GST breakup
+- [x] Docker Compose — parallel startup verified (PostgreSQL 5433, API 8001)
 
 ## In Progress
 
@@ -56,7 +57,6 @@
 - [ ] Reports and dashboard screens
 
 ### Deployment and Submission
-- [ ] Docker Compose (single command startup)
 - [ ] README — final setup instructions
 - [ ] DESIGN_NOTE — finalize
 - [ ] ASSUMPTIONS — finalize

@@ -332,3 +332,18 @@ All four phases implemented and benchmark-verified:
 - Implemented `GET /reports/sales` — sales register with GST breakup exported to Excel.
 - Styled header rows with dark blue background and white bold text.
 - Both reports verified against benchmark data.
+
+## Docker Compose Parallel-Run Milestone — November 24, 2026
+
+### Completed
+- Removed fixed Compose container names so Docker Compose generates project-scoped names.
+- Changed published host ports to PostgreSQL `5433:5432` and API `8001:8000`; internal service DNS remains `db:5432`.
+- Added the Debian runtime libraries required by WeasyPrint to the backend image.
+- Ordered the Dockerfile to retain the cached Python dependency layer when only system libraries change.
+- Started the original project alongside the existing tested copy without changing the tested-copy containers or its database volume.
+
+### Verified
+- `docker compose config --quiet` passed (Compose reports only the existing obsolete `version` warning).
+- Original PostgreSQL container is healthy and published on port 5433.
+- Original API container is running and `http://localhost:8001/docs` returned HTTP 200.
+- The original `cdi-food-internship_postgres_data` database has the schema but zero rows in the inspected master and business tables; no seed or business data was added.
