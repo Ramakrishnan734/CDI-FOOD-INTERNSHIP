@@ -336,12 +336,18 @@ def get_stock_ledger(
                 sl.ref_id,
                 sl.notes,
                 SUM(sl.qty_in - sl.qty_out) OVER (
-                    ORDER BY sl.created_at, sl.id
-                    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-                ) AS running_balance
+                ORDER BY
+                    CASE WHEN sl.movement_type = 'opening' THEN 0 ELSE 1 END,
+                    sl.created_at,
+                    sl.id
+                ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+            ) AS running_balance
             FROM stock_ledger sl
             WHERE sl.item_id = :item_id
-            ORDER BY sl.created_at, sl.id
+            ORDER BY
+                CASE WHEN sl.movement_type = 'opening' THEN 0 ELSE 1 END,
+                sl.created_at,
+                sl.id
         """),
         {"item_id": item.id},
     ).fetchall()

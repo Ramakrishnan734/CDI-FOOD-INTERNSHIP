@@ -187,7 +187,7 @@ preserving that volume, run `docker compose down` (without `-v`).
 ## Current Preserved Test-Stack Snapshot
 
 The following figures were read without modification from the preserved test
-stack on November 24, 2026. They are the current runtime state, not a fresh
+stack on November 25, 2026. They are the current runtime state, not a fresh
 seed baseline.
 
 ### Flour Purchase
@@ -195,14 +195,12 @@ seed baseline.
 |---|---:|---:|---:|---:|
 | RM-FLOUR | 100 kg | 60 kg | 120 kg | ₹43.5000/kg |
 
-The ledger records the production issue before the ₹45/kg purchase, so this
-current WAC differs from the historical target calculation documented in
-`DESIGN_NOTE.md`.
+The purchase movement is dated before the production issue in the current stock ledger. This snapshot reflects the preserved runtime state and should not be interpreted as a fresh seed baseline.
 
 ### Production Run
 | Output | Cost |
 |---|---:|
-| 188 packets (planned 200) | ₹30.9043/packet |
+| 188 packets (planned 200) | ₹31.1436/packet |
 | Yield variance | −6% (recorded in the historical benchmark) |
 | Oil variance | +5% (recorded in the historical benchmark) |
 

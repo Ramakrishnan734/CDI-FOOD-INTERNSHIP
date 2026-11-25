@@ -71,12 +71,19 @@ def export_stock_ledger(
             sl.created_at,
             SUM(sl.qty_in - sl.qty_out) OVER (
                 PARTITION BY sl.item_id
-                ORDER BY sl.created_at, sl.id
+                ORDER BY
+                    CASE WHEN sl.movement_type = 'opening' THEN 0 ELSE 1 END,
+                    sl.created_at,
+                    sl.id
                 ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
             ) AS running_balance
         FROM stock_ledger sl
         JOIN items i ON i.id = sl.item_id
-        ORDER BY i.code, sl.created_at, sl.id
+        ORDER BY
+            i.code,
+            CASE WHEN sl.movement_type = 'opening' THEN 0 ELSE 1 END,
+            sl.created_at,
+            sl.id
     """)).fetchall()
 
     wb = Workbook()

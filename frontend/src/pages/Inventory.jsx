@@ -25,7 +25,9 @@ export default function Inventory() {
 
   useEffect(() => { fetchStock() }, [])
 
-  async function fetchStock() {
+    async function fetchStock() {
+      setError(null)
+
     try {
       const res = await api.get('/inventory/balance')
       setStock(res.data)
@@ -35,9 +37,15 @@ export default function Inventory() {
   }
 
   async function fetchLedger(code) {
+    setError(null)
+    setLedger([])
+    setLedgerItem(code)
+
     try {
-      const res = await api.get(`/inventory/ledger?item_code=${code}`)
-      setLedger(res.data)
+      const res = await api.get('/inventory/ledger', {
+        params: { item_code: code },
+      })
+      setLedger(res.data.movements || [])
     } catch {
       setError('Failed to load ledger')
     }
@@ -100,9 +108,8 @@ export default function Inventory() {
 
         {/* Stock Balance */}
         <div className="bg-white rounded-xl shadow-sm p-4">
-          <div className="flex justify-between items-center mb-3">
+          <div className="mb-3">
             <h2 className="font-semibold text-gray-700">Stock Balance</h2>
-            <button onClick={fetchStock} className="text-xs text-blue-600 hover:underline">Refresh</button>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -209,9 +216,11 @@ export default function Inventory() {
                 <tbody>
                   {ledger.map((row, i) => (
                     <tr key={i} className="border-b last:border-0">
-                      <td className="py-1 pr-3 text-xs">{row.txn_date}</td>
-                      <td className="py-1 pr-3 text-xs">{row.txn_type}</td>
-                      <td className="py-1 pr-3 text-xs font-mono">{row.reference}</td>
+                      <td className="py-1 pr-3 text-xs">{row.date}</td>
+                      <td className="py-1 pr-3 text-xs">{row.movement_type}</td>
+                      <td className="py-1 pr-3 text-xs font-mono">
+                          {row.ref_type} {row.ref_id}
+                      </td>
                       <td className="py-1 pr-3 text-green-700">{row.qty_in > 0 ? row.qty_in : ''}</td>
                       <td className="py-1 pr-3 text-red-600">{row.qty_out > 0 ? row.qty_out : ''}</td>
                       <td className="py-1 font-semibold">{row.running_balance}</td>
