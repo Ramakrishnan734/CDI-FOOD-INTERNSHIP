@@ -46,6 +46,13 @@
 - [x] Mobile API connection tested using USB ADB reverse
 - [x] Mobile TypeScript check — passed
 - [x] Expo Doctor — 20/20 checks passed
+- [x] Salesman Order Entry — active customer and finished-goods selection
+- [x] Selling price configured for FG-MRK200 (₹50.00)
+- [x] Mobile order submission — pending sales order created
+- [x] Backend validation — active customer, finished goods, configured price, and stock availability
+- [x] Stock locking and duplicate-line quantity aggregation during order validation
+- [x] Salesman Order Entry — mobile TypeScript check and backend compile passed
+- [x] Salesman Order Entry — backend mock tests passed; no stock ledger writes
 
 ## In Progress
 - [x] Production costing report — authenticated Excel download verified

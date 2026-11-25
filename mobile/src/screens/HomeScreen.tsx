@@ -1,3 +1,5 @@
+
+import { useState } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -6,31 +8,46 @@ import {
 } from 'react-native';
 
 import { useAuth } from '../auth/AuthContext';
+import OrderEntryScreen from './OrderEntryScreen';
 
 export default function HomeScreen() {
   const { user, logout } = useAuth();
+  const [showOrderEntry, setShowOrderEntry] = useState(false);
+
+  if (showOrderEntry) {
+    return (
+      <OrderEntryScreen
+        onBack={() => setShowOrderEntry(false)}
+      />
+    );
+  }
 
   return (
     <View style={styles.container}>
       <Text style={styles.brand}>CDI FOOD ERP</Text>
-      <Text style={styles.heading}>Welcome, {user?.name || 'Salesman'}</Text>
+      <Text style={styles.heading}>
+        Welcome, {user?.name || 'Salesman'}
+      </Text>
 
       <View style={styles.roleCard}>
         <Text style={styles.label}>Signed in as</Text>
         <Text style={styles.role}>Salesman</Text>
       </View>
 
-      <Text style={styles.note}>
-        Your Salesman workspace is ready. Order-entry features will be added
-        in the next approved phase.
-      </Text>
+      <Pressable
+        style={styles.orderButton}
+        onPress={() => setShowOrderEntry(true)}
+        accessibilityRole="button"
+      >
+        <Text style={styles.buttonText}>Create Sales Order</Text>
+      </Pressable>
 
       <Pressable
-        style={styles.button}
+        style={styles.logoutButton}
         onPress={() => void logout()}
         accessibilityRole="button"
       >
-        <Text style={styles.buttonText}>Log Out</Text>
+        <Text style={styles.logoutText}>Log Out</Text>
       </Pressable>
     </View>
   );
@@ -72,21 +89,28 @@ const styles = StyleSheet.create({
     marginTop: 6,
     textTransform: 'capitalize',
   },
-  note: {
-    color: '#6B7280',
-    fontSize: 15,
-    lineHeight: 23,
-    marginTop: 20,
+  orderButton: {
+    alignItems: 'center',
+    backgroundColor: '#2563EB',
+    borderRadius: 10,
+    justifyContent: 'center',
+    marginTop: 28,
+    minHeight: 52,
   },
-  button: {
+  buttonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+  logoutButton: {
     alignItems: 'center',
     backgroundColor: '#111827',
     borderRadius: 10,
     justifyContent: 'center',
-    marginTop: 32,
+    marginTop: 14,
     minHeight: 50,
   },
-  buttonText: {
+  logoutText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '700',

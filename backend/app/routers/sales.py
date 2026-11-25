@@ -10,7 +10,10 @@ from fastapi.responses import Response
 from app.services.pdf_service import generate_invoice_pdf
 
 from app.dependencies import get_db, require_role
-from app.services.inventory_service import get_balance_and_wac
+from app.services.inventory_service import (
+    get_balance_and_wac,
+    lock_items,
+)
 
 router = APIRouter(prefix="/sales", tags=["sales"])
 
@@ -27,7 +30,12 @@ IGST_RATE = Decimal("5.0")
 class SalesOrderLine(BaseModel):
     item_code: str = Field(min_length=1, max_length=20)
     qty: Decimal = Field(gt=0, max_digits=10, decimal_places=3)
-    unit_price: Decimal = Field(gt=0, max_digits=15, decimal_places=2)
+    unit_price: Decimal | None = Field(
+    default=None,
+    gt=0,
+    max_digits=15,
+    decimal_places=2,
+)
 
 
 class CreateSalesOrderRequest(BaseModel):
@@ -73,7 +81,80 @@ def _calculate_gst(taxable_value: Decimal, customer_state: str) -> dict:
         "invoice_total": taxable_value + cgst + sgst + igst,
     }
 
+# ------------------------------------------------------------------
+# GET /sales/customers
+# Roles: salesman, admin
+# ------------------------------------------------------------------
 
+@router.get("/customers")
+def list_sales_customers(
+    conn=Depends(get_db),
+    user=Depends(require_role("salesman", "admin")),
+):
+    rows = conn.execute(
+        text("""
+            SELECT id, name, state_code
+            FROM customers
+            WHERE is_active = true
+            ORDER BY name, id
+        """)
+    ).fetchall()
+
+    return [dict(row._mapping) for row in rows]
+
+
+# ------------------------------------------------------------------
+# GET /sales/finished-goods
+# Roles: salesman, admin
+# ------------------------------------------------------------------
+
+@router.get("/finished-goods")
+def list_sales_finished_goods(
+    conn=Depends(get_db),
+    user=Depends(require_role("salesman", "admin")),
+):
+    rows = conn.execute(
+        text("""
+            SELECT
+                i.id,
+                i.code,
+                i.name,
+                i.unit,
+                i.selling_price,
+                COALESCE(
+                    (
+                        SELECT SUM(sl.qty_in - sl.qty_out)
+                        FROM stock_ledger sl
+                        WHERE sl.item_id = i.id
+                    ),
+                    0
+                ) AS stock_balance
+            FROM items i
+            WHERE i.is_active = true
+              AND i.item_type = 'finished'
+            ORDER BY i.code
+        """)
+    ).fetchall()
+
+    return [
+        {
+            "id": row.id,
+            "code": row.code,
+            "name": row.name,
+            "unit": row.unit,
+            "selling_price": (
+                str(row.selling_price)
+                if row.selling_price is not None
+                else None
+            ),
+            "stock_balance": str(row.stock_balance),
+            "can_order": (
+                row.selling_price is not None
+                and row.stock_balance > 0
+            ),
+        }
+        for row in rows
+    ]
 # ------------------------------------------------------------------
 # POST /sales/order
 # Roles: salesman, admin
@@ -105,10 +186,11 @@ def create_sales_order(
             )
 
         resolved_lines = []
+
         for line in body.lines:
             item = conn.execute(
                 text("""
-                    SELECT id, code, name, unit, item_type
+                    SELECT id, code, name, unit, item_type, selling_price
                     FROM items
                     WHERE code = :code AND is_active = true
                 """),
@@ -120,12 +202,56 @@ def create_sales_order(
                     status_code=404,
                     detail=f"Item '{line.item_code}' not found or inactive",
                 )
+
             if item.item_type != "finished":
                 raise HTTPException(
                     status_code=422,
-                    detail=f"Item '{line.item_code}' is a {item.item_type} item. Only finished goods can be sold.",
+                    detail=(
+                        f"Item '{line.item_code}' is a {item.item_type} item. "
+                        "Only finished goods can be sold."
+                    ),
                 )
-            resolved_lines.append((line, item))
+
+            if item.selling_price is None:
+                raise HTTPException(
+                    status_code=422,
+                    detail=(
+                        f"Item '{item.code}' has no selling price configured "
+                        "and cannot be ordered."
+                    ),
+                )
+
+            resolved_lines.append((line, item, Decimal(item.selling_price)))
+
+        # Lock all ordered items before reading stock.
+        lock_items(conn, [item.id for _, item, _ in resolved_lines])
+
+        # Aggregate quantities so duplicate item lines cannot bypass
+        # the stock check.
+        requested_qty = {}
+
+        for line, item, _ in resolved_lines:
+            requested_qty[item.id] = (
+                requested_qty.get(item.id, Decimal("0")) + line.qty
+            )
+
+        for item_id, required_qty in requested_qty.items():
+            balance, _ = get_balance_and_wac(conn, item_id)
+
+            if balance < required_qty:
+                item = next(
+                    item for _, item, _ in resolved_lines
+                    if item.id == item_id
+                )
+
+                raise HTTPException(
+                    status_code=409,
+                    detail=(
+                        f"Insufficient stock for {item.code}. "
+                        f"Available: {balance} {item.unit}; "
+                        f"requested: {required_qty} {item.unit}."
+                    ),
+                )
 
         order_number = _generate_order_number(conn, body.order_date)
 
@@ -148,8 +274,13 @@ def create_sales_order(
         result_lines = []
         order_total = Decimal("0")
 
-        for line, item in resolved_lines:
-            line_total = (line.qty * line.unit_price).quantize(Decimal("0.01"))
+        for line, item, selling_price in resolved_lines:
+            # Always use the database price.
+            # The client-supplied line.unit_price is intentionally ignored.
+            line_total = (
+                line.qty * selling_price
+            ).quantize(Decimal("0.01"))
+
             order_total += line_total
 
             conn.execute(
@@ -163,7 +294,7 @@ def create_sales_order(
                     "order_id": order_id,
                     "item_id": item.id,
                     "qty": line.qty,
-                    "unit_price": line.unit_price,
+                    "unit_price": selling_price,
                     "line_total": line_total,
                 },
             )
@@ -173,7 +304,7 @@ def create_sales_order(
                 "item_name": item.name,
                 "unit": item.unit,
                 "qty": str(line.qty),
-                "unit_price": str(line.unit_price),
+                "unit_price": str(selling_price),
                 "line_total": str(line_total),
             })
 
@@ -187,7 +318,6 @@ def create_sales_order(
         "taxable_value": str(order_total),
         "lines": result_lines,
     }
-
 
 # ------------------------------------------------------------------
 # POST /sales/{order_id}/approve

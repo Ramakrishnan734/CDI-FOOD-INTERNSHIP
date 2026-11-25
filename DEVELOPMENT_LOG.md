@@ -396,3 +396,14 @@ All four phases implemented and benchmark-verified:
 - Downloaded workbook was recognized as Microsoft Excel 2007+.
 - ZIP integrity check passed for all workbook contents.
 - Tests used the isolated test stack; preserved databases were not modified.
+
+### Salesman Order Entry — Backend Mock Tests
+
+- PASS: Authenticated salesman ID is stored on the order.
+- PASS: Database selling price overrides client-supplied price.
+- PASS: Order is created with pending status.
+- PASS: Order submission does not write to or deduct from stock ledger.
+- PASS: Insufficient stock (51 requested, 50 available) returns HTTP 409.
+- PASS: No sales order header is inserted when stock is insufficient.
+- Tests used mocked database responses; no real database writes were performed.
+- Existing pending test order was left untouched.
