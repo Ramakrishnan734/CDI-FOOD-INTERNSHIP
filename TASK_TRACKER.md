@@ -38,6 +38,14 @@
 - [x] Axios JWT interceptor and 401 auto-redirect
 - [x] Excel export — stock ledger report, sales register with GST breakup
 - [x] Docker Compose — parallel startup verified (PostgreSQL 5433, API 8001)
+- [x] Salesman mobile app — Expo React Native TypeScript scaffold
+- [x] Salesman mobile login connected to existing FastAPI `/auth/login`
+- [x] Salesman role validation — rejects non-Salesman accounts
+- [x] JWT and user session stored using Expo SecureStore
+- [x] Login, logout, and session restoration tested on physical Android device
+- [x] Mobile API connection tested using USB ADB reverse
+- [x] Mobile TypeScript check — passed
+- [x] Expo Doctor — 20/20 checks passed
 
 ## In Progress
 - [x] Production costing report — authenticated Excel download verified
