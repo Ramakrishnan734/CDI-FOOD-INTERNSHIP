@@ -1,4 +1,5 @@
 # backend/app/routers/auth.py
+import os
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import text
@@ -14,10 +15,23 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 # -----------------------------------------------------------------
 # Configuration
-# In production this comes from an environment variable.
-# For now it is hardcoded for development.
+# JWT secret must be provided through the environment.
+# Validate it immediately when the application imports this module.
 # -----------------------------------------------------------------
-SECRET_KEY = "cdi-food-erp-secret-key-change-in-production"
+
+def get_secret_key() -> str:
+    secret_key = os.getenv("SECRET_KEY")
+
+    if not secret_key:
+        raise RuntimeError("SECRET_KEY environment variable is required")
+
+    if len(secret_key) < 32:
+        raise RuntimeError("SECRET_KEY must be at least 32 characters long")
+
+    return secret_key
+
+
+SECRET_KEY = get_secret_key()
 ALGORITHM = "HS256"
 TOKEN_EXPIRE_HOURS = 12
 
