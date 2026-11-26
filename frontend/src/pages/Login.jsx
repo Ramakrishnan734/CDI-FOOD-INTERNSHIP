@@ -79,8 +79,6 @@ export default function Login() {
         </form>
 
         <div className="mt-6 text-xs text-gray-400 space-y-1">
-          <p><strong>Admin:</strong> admin@cdi.com / admin123</p>
-          <p><strong>Salesman:</strong> salesman_a@cdi.com / sales123</p>
         </div>
       </div>
     </div>
