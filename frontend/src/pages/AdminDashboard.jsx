@@ -150,10 +150,6 @@ export default function AdminDashboard() {
         <div className="bg-white rounded-xl shadow-sm p-4">
           <div className="flex justify-between items-center mb-3">
             <h2 className="font-semibold text-gray-700">Sales Orders</h2>
-            <button onClick={fetchData}
-              className="text-xs text-blue-600 hover:underline">
-              Refresh
-            </button>
           </div>
 
           {orders.length === 0 && (
