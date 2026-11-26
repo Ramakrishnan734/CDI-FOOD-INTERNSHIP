@@ -1,22 +1,31 @@
 # backend/app/database.py
 
-from sqlalchemy import create_engine
-from sqlalchemy.engine import Engine
 import os
 
-# Database URL format:
-# postgresql+psycopg2://username:password@host:port/database_name
+from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine, make_url
+
+# Preserve the local development fallback.
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
     "postgresql+psycopg2://rk@localhost:5432/cdi_food_db"
 )
 
-# Engine = the actual connection pool to PostgreSQL
+# Railway may provide postgres:// or postgresql://.
+# Normalize PostgreSQL URLs to the installed psycopg2 driver.
+database_url = make_url(DATABASE_URL)
+
+if database_url.drivername in ("postgres", "postgresql"):
+    database_url = database_url.set(
+        drivername="postgresql+psycopg2"
+    )
+
 engine: Engine = create_engine(
-    DATABASE_URL,
-    echo=True,        # logs every SQL query — helpful during development
-    future=True       # use SQLAlchemy 2.0 style
+    database_url,
+    echo=os.getenv("SQL_ECHO", "true").lower() == "true",
+    future=True,
 )
+
 
 def get_engine() -> Engine:
     return engine
