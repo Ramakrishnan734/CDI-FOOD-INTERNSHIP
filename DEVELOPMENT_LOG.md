@@ -407,3 +407,19 @@ All four phases implemented and benchmark-verified:
 - PASS: No sales order header is inserted when stock is insufficient.
 - Tests used mocked database responses; no real database writes were performed.
 - Existing pending test order was left untouched.
+
+## Final Report and API Verification — November 26, 2026
+
+- Added yield variance (packets) and yield variance (%) to the production costing Excel report.
+- Verified the benchmark production run: planned output 200, actual output 188, yield variance -12 packets (-6%).
+- Rebuilt the Docker API service; API health endpoint returned HTTP 200.
+- Verified Stock Ledger Excel export and benchmark closing balances:
+  - Finished goods: 88 packets
+  - Flour: 120 kg
+  - Oil: 19.5 litres
+  - Pouches: 306 pieces
+  - Cartons: 21 pieces
+  - Spice mix: 3.8 kg
+- Backend tests: 14 passed, 2 subtests passed.
+- `docker compose config --quiet` and `git diff --check` passed.
+- No database reset or destructive database operation was performed.

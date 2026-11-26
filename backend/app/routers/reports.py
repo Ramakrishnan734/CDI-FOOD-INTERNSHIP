@@ -271,6 +271,8 @@ def export_production_costing(
         "FG Name",
         "Planned Output",
         "Actual Output",
+        "Yield Variance (Packets)",
+        "Yield Variance (%)",
         "Damaged Qty",
         "Material Cost (₹)",
         "Labour Cost (₹)",
@@ -282,7 +284,10 @@ def export_production_costing(
         "Gross Margin (%)",
     ]
 
-    widths = [10, 14, 14, 22, 16, 16, 14, 18, 18, 18, 18, 20, 24, 26, 18]
+    widths = [
+        10, 14, 14, 22, 16, 16, 24, 20, 14,
+        18, 18, 18, 18, 20, 24, 26, 18
+    ]
     _header_row(ws, headers, widths)
 
     for row_num, r in enumerate(rows, 2):
@@ -291,6 +296,16 @@ def export_production_costing(
         overhead_cost = float(r.overhead_cost or 0)
 
         total_cost = material_cost + labour_cost + overhead_cost
+        planned_output = float(r.planned_output or 0)
+        actual_output = float(r.actual_output or 0)
+
+        yield_variance = actual_output - planned_output
+
+        yield_variance_percent = (
+            (yield_variance / planned_output) * 100
+            if planned_output != 0
+            else None
+        )
 
         cost_per_packet = (
             float(r.cost_per_packet)
@@ -321,8 +336,10 @@ def export_production_costing(
             str(r.run_date),
             r.item_code,
             r.item_name,
-            float(r.planned_output or 0),
-            float(r.actual_output or 0),
+            planned_output,
+            actual_output,
+            yield_variance,
+            yield_variance_percent,
             float(r.damaged_qty or 0),
             material_cost,
             labour_cost,
