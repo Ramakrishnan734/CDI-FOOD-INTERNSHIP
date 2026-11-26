@@ -2,8 +2,9 @@
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from sqlalchemy import text
-from app.database import engine
+
+# Existing database role values; keep these stable for current users and JWTs.
+ROLE_VALUES = frozenset({"salesman", "admin", "production", "auditor", "owner"})
 
 # HTTPBearer reads the "Authorization: Bearer <token>" header automatically
 bearer_scheme = HTTPBearer()
@@ -14,6 +15,7 @@ def get_db():
     Provides a database connection to route handlers.
     Connection is returned to the pool after the request completes.
     """
+    from app.database import engine
     with engine.connect() as conn:
         yield conn
 
@@ -52,4 +54,5 @@ def require_role(*roles: str):
                 detail=f"Access denied. Required role: {list(roles)}"
             )
         return user
+    _check.required_roles = frozenset(roles)
     return _check

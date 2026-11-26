@@ -717,6 +717,39 @@ def download_invoice_pdf(
     )
 
 # ------------------------------------------------------------------
+# GET /sales/payments
+# Read-only business-wide payment register for Admin, Owner, Accountant.
+# ------------------------------------------------------------------
+
+@router.get("/payments")
+def list_payments(
+    conn=Depends(get_db),
+    user=Depends(require_role("admin", "owner", "auditor")),
+):
+    rows = conn.execute(text("""
+        SELECT p.id, p.sales_order_id, so.order_number,
+               c.name AS customer_name, p.payment_date, p.amount,
+               p.reference, u.name AS recorded_by, p.created_at
+        FROM payments p
+        JOIN sales_orders so ON so.id = p.sales_order_id
+        JOIN customers c ON c.id = so.customer_id
+        LEFT JOIN users u ON u.id = p.recorded_by
+        ORDER BY p.payment_date DESC, p.id DESC
+    """)).fetchall()
+    return [{
+        "payment_id": row.id,
+        "sales_order_id": row.sales_order_id,
+        "order_number": row.order_number,
+        "customer_name": row.customer_name,
+        "payment_date": str(row.payment_date),
+        "amount": str(row.amount),
+        "reference": row.reference,
+        "recorded_by": row.recorded_by,
+        "created_at": row.created_at.isoformat() if row.created_at else None,
+    } for row in rows]
+
+
+# ------------------------------------------------------------------
 # GET /sales/orders
 # Role: admin, owner, auditor
 # ------------------------------------------------------------------
@@ -731,9 +764,10 @@ def list_orders(
             SELECT so.id, so.order_number, so.status, so.order_date,
                    so.invoice_number, so.invoice_total,
                    so.taxable_value, so.amount_paid, so.outstanding,
-                   c.name AS customer_name, c.state_code
+                   c.name AS customer_name, c.state_code, u.name AS salesman_name
             FROM sales_orders so
             JOIN customers c ON c.id = so.customer_id
+            JOIN users u ON u.id = so.salesman_id
             ORDER BY so.created_at DESC
         """),
     ).fetchall()
@@ -751,6 +785,7 @@ def list_orders(
             "outstanding": str(r.outstanding) if r.outstanding else None,
             "customer_name": r.customer_name,
             "customer_state": r.state_code,
+            "salesman_name": r.salesman_name,
         }
         for r in rows
     ]

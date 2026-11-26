@@ -69,22 +69,31 @@ def export_stock_ledger(
             sl.ref_type,
             sl.ref_id,
             sl.created_at,
-            SUM(sl.qty_in - sl.qty_out) OVER (
-                PARTITION BY sl.item_id
-                ORDER BY
-                    CASE WHEN sl.movement_type = 'opening' THEN 0 ELSE 1 END,
-                    sl.created_at,
-                    sl.id
-                ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-            ) AS running_balance
+            CASE WHEN :production_only THEN NULL ELSE
+                SUM(sl.qty_in - sl.qty_out) OVER (
+                    PARTITION BY sl.item_id
+                    ORDER BY
+                        CASE WHEN sl.movement_type = 'opening' THEN 0 ELSE 1 END,
+                        sl.created_at,
+                        sl.id
+                    ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+                )
+            END AS running_balance
         FROM stock_ledger sl
         JOIN items i ON i.id = sl.item_id
+        WHERE (
+            :production_only = false
+            OR (
+                sl.movement_type IN ('production_issue', 'production_output')
+                AND sl.ref_type = 'production_run'
+            )
+        )
         ORDER BY
             i.code,
             CASE WHEN sl.movement_type = 'opening' THEN 0 ELSE 1 END,
             sl.created_at,
             sl.id
-    """)).fetchall()
+    """), {"production_only": user["role"] == "production"}).fetchall()
 
     wb = Workbook()
     ws = wb.active
@@ -107,7 +116,11 @@ def export_stock_ledger(
         ws.cell(row=row_num, column=8, value=r.ref_type)
         ws.cell(row=row_num, column=9, value=r.ref_id)
         ws.cell(row=row_num, column=10, value=r.created_at.strftime("%Y-%m-%d %H:%M"))
-        ws.cell(row=row_num, column=11, value=float(r.running_balance))
+        ws.cell(
+            row=row_num,
+            column=11,
+            value=float(r.running_balance) if r.running_balance is not None else None,
+        )
 
     return _make_response(wb, f"stock_ledger_{date.today()}.xlsx")
 
@@ -139,9 +152,11 @@ def export_sales_register(
             so.invoice_total,
             so.amount_paid,
             so.outstanding,
-            so.status
+            so.status,
+            u.name AS salesman_name
         FROM sales_orders so
         JOIN customers c ON c.id = so.customer_id
+        JOIN users u ON u.id = so.salesman_id
         ORDER BY so.order_date, so.id
     """)).fetchall()
 
@@ -153,9 +168,9 @@ def export_sales_register(
         "Order No.", "Order Date", "Invoice No.", "Invoice Date",
         "Customer", "State", "GSTIN",
         "Taxable Value", "CGST", "SGST", "IGST",
-        "Invoice Total", "Amount Paid", "Outstanding", "Status"
+        "Invoice Total", "Amount Paid", "Outstanding", "Status", "Salesman"
     ]
-    widths = [18, 12, 18, 12, 20, 8, 18, 14, 10, 10, 10, 14, 12, 12, 12]
+    widths = [18, 12, 18, 12, 20, 8, 18, 14, 10, 10, 10, 14, 12, 12, 12, 20]
     _header_row(ws, headers, widths)
 
     for row_num, r in enumerate(rows, 2):
@@ -174,6 +189,7 @@ def export_sales_register(
         ws.cell(row=row_num, column=13, value=float(r.amount_paid) if r.amount_paid else 0)
         ws.cell(row=row_num, column=14, value=float(r.outstanding) if r.outstanding else 0)
         ws.cell(row=row_num, column=15, value=r.status)
+        ws.cell(row=row_num, column=16, value=r.salesman_name)
 
     return _make_response(wb, f"sales_register_{date.today()}.xlsx")
 

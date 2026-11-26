@@ -8,7 +8,7 @@ from decimal import Decimal
 import bcrypt
 from jose import jwt
 
-from app.dependencies import get_db
+from app.dependencies import get_db, ROLE_VALUES
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -68,6 +68,8 @@ def decode_token(token: str) -> dict:
     """
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("role") not in ROLE_VALUES or not payload.get("sub"):
+            raise ValueError("Invalid token role or subject")
         return payload
     except Exception:
         raise HTTPException(

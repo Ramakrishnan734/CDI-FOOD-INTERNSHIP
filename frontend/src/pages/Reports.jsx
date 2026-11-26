@@ -48,6 +48,9 @@ export default function Reports() {
   const role = localStorage.getItem('role')
   const [downloading, setDownloading] = useState(null)
   const [error, setError] = useState(null)
+  const visibleReports = role === 'production'
+    ? REPORTS.filter(report => ['/reports/stock'].includes(report.endpoint))
+    : REPORTS
 
   async function handleDownload(report) {
     setError(null)
@@ -60,7 +63,7 @@ export default function Reports() {
       a.download = report.filename
       a.click()
       window.URL.revokeObjectURL(url)
-    } catch (err) {
+    } catch {
       setError(`Failed to download ${report.label}`)
     } finally {
       setDownloading(null)
@@ -86,8 +89,10 @@ export default function Reports() {
           )}
           <button onClick={() => navigate('/inventory')}
             className="bg-gray-700 text-xs px-3 py-1 rounded">Inventory</button>
-          <button onClick={() => navigate('/production')}
-            className="bg-gray-700 text-xs px-3 py-1 rounded">Production</button>
+          {(role === 'admin' || role === 'production') && (
+            <button onClick={() => navigate('/production')}
+              className="bg-gray-700 text-xs px-3 py-1 rounded">Production</button>
+          )}
           <button onClick={logout}
             className="bg-gray-700 text-xs px-3 py-1 rounded">Logout</button>
         </div>
@@ -100,7 +105,7 @@ export default function Reports() {
         <div className="bg-white rounded-xl shadow-sm p-4">
           <h2 className="font-semibold text-gray-700 mb-4">Export Reports</h2>
           <div className="space-y-3">
-            {REPORTS.map(report => (
+            {visibleReports.map(report => (
               <div key={report.endpoint}
                 className="flex items-center justify-between border rounded-lg p-3">
                 <div>

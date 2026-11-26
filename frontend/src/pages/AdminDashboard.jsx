@@ -10,7 +10,6 @@ export default function AdminDashboard() {
 
   const [orders, setOrders] = useState([])
   const [stock, setStock] = useState([])
-  const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState(null)
   const [error, setError] = useState(null)
   const [paymentOrderId, setPaymentOrderId] = useState(null)
@@ -26,7 +25,7 @@ export default function AdminDashboard() {
       ])
       setOrders(ordersRes.data)
       setStock(stockRes.data)
-    } catch (err) {
+    } catch {
       setError('Failed to load data')
     }
   }
@@ -84,7 +83,7 @@ export default function AdminDashboard() {
       a.href = url
       a.download = `${invoiceNumber}.pdf`
       a.click()
-    } catch (err) {
+    } catch {
       setError('Failed to download invoice')
     }
   }
@@ -116,10 +115,6 @@ export default function AdminDashboard() {
           <button onClick={() => navigate('/reports')}
             className="bg-gray-700 text-xs px-3 py-1 rounded">
             Reports
-          </button>
-          <button onClick={() => navigate('/salesman')}
-            className="bg-gray-700 text-xs px-3 py-1 rounded">
-            Salesman View
           </button>
           <button onClick={logout}
             className="bg-gray-700 text-xs px-3 py-1 rounded">
@@ -182,7 +177,11 @@ export default function AdminDashboard() {
                   {order.invoice_number && (
                     <span className="mr-3">Invoice: {order.invoice_number}</span>
                   )}
-                  <span>Total: ₹{order.invoice_total || order.taxable_value}</span>
+                  {order.invoice_total == null && order.taxable_value == null ? (
+                      <span>Total: Not invoiced</span>
+                    ) : (
+                      <span>Total: ₹{order.invoice_total ?? order.taxable_value}</span>
+                    )}
                   {order.outstanding && (
                     <span className="ml-3 text-orange-600">Outstanding: ₹{order.outstanding}</span>
                   )}
@@ -226,6 +225,7 @@ export default function AdminDashboard() {
                   <form onSubmit={handlePayment} className="mt-3 flex gap-2 items-center">
                     <input
                       type="number"
+                      step="0.01"
                       value={paymentAmount}
                       onChange={e => setPaymentAmount(e.target.value)}
                       required

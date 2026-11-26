@@ -92,8 +92,10 @@ export default function Inventory() {
             <button onClick={() => navigate('/admin')}
               className="bg-gray-700 text-xs px-3 py-1 rounded">Admin</button>
           )}
-          <button onClick={() => navigate('/production')}
-            className="bg-gray-700 text-xs px-3 py-1 rounded">Production</button>
+          {(role === 'admin' || role === 'production') && (
+            <button onClick={() => navigate('/production')}
+              className="bg-gray-700 text-xs px-3 py-1 rounded">Production</button>
+          )}
           <button onClick={() => navigate('/reports')}
             className="bg-gray-700 text-xs px-3 py-1 rounded">Reports</button>
           <button onClick={logout}
@@ -143,8 +145,8 @@ export default function Inventory() {
           </div>
         </div>
 
-        {/* Purchase Form — admin/production only */}
-        {(role === 'admin' || role === 'production') && (
+        {/* Purchase Form — Admin only */}
+        {role === 'admin' && (
           <div className="bg-white rounded-xl shadow-sm p-4">
             <h2 className="font-semibold text-gray-700 mb-3">Record Purchase</h2>
             <form onSubmit={handlePurchase} className="grid grid-cols-2 gap-3">
@@ -198,9 +200,14 @@ export default function Inventory() {
         )}
 
         {/* Stock Ledger */}
-        {ledger.length > 0 && (
+        {ledgerItem && (
           <div className="bg-white rounded-xl shadow-sm p-4">
             <h2 className="font-semibold text-gray-700 mb-3">Stock Ledger — {ledgerItem}</h2>
+            {ledger.length === 0 ? (
+                <p className="text-sm text-gray-500">
+                  No production movements found.
+                </p>
+              ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -229,6 +236,7 @@ export default function Inventory() {
                 </tbody>
               </table>
             </div>
+            )}
           </div>
         )}
 

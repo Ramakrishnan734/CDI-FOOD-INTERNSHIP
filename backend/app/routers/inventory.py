@@ -118,14 +118,14 @@ def _item_id_for_po_line(conn, po_id: int, item_code: str) -> int:
 
 # ------------------------------------------------------------------
 # POST /inventory/purchase
-# Roles: admin, production
+# Role: admin
 # ------------------------------------------------------------------
 
 @router.post("/purchase", status_code=201)
 def create_purchase(
     body: PurchaseRequest,
     conn=Depends(get_db),
-    user=Depends(require_role("admin", "production")),
+    user=Depends(require_role("admin")),
 ):
     user_id = int(user["sub"])
     request_hash = _compute_request_hash(body)
@@ -335,21 +335,33 @@ def get_stock_ledger(
                 sl.ref_type,
                 sl.ref_id,
                 sl.notes,
-                SUM(sl.qty_in - sl.qty_out) OVER (
-                ORDER BY
-                    CASE WHEN sl.movement_type = 'opening' THEN 0 ELSE 1 END,
-                    sl.created_at,
-                    sl.id
-                ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-            ) AS running_balance
+                CASE WHEN :production_only THEN NULL ELSE
+                    SUM(sl.qty_in - sl.qty_out) OVER (
+                        ORDER BY
+                            CASE WHEN sl.movement_type = 'opening' THEN 0 ELSE 1 END,
+                            sl.created_at,
+                            sl.id
+                        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+                    )
+                END AS running_balance
             FROM stock_ledger sl
             WHERE sl.item_id = :item_id
+              AND (
+                    :production_only = false
+                    OR (
+                        sl.movement_type IN ('production_issue', 'production_output')
+                        AND sl.ref_type = 'production_run'
+                    )
+              )
             ORDER BY
                 CASE WHEN sl.movement_type = 'opening' THEN 0 ELSE 1 END,
                 sl.created_at,
                 sl.id
         """),
-        {"item_id": item.id},
+        {
+            "item_id": item.id,
+            "production_only": user["role"] == "production",
+        },
     ).fetchall()
 
     return {

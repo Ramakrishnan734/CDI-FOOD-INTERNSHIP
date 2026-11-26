@@ -42,6 +42,109 @@ class PostProductionRequest(BaseModel):
 
 
 # ------------------------------------------------------------------
+# GET /production/boms
+# Read-only BOM visibility for production, finance, and owner roles.
+# ------------------------------------------------------------------
+
+@router.get("/boms")
+def list_boms(
+    conn=Depends(get_db),
+    user=Depends(require_role("admin", "production", "auditor", "owner")),
+):
+    rows = conn.execute(text("""
+        SELECT bh.id AS bom_id, bh.version, bh.batch_output_qty,
+               fg.code AS finished_item_code, fg.name AS finished_item_name,
+               rm.code AS component_code, rm.name AS component_name,
+               rm.unit AS component_unit, bl.qty_per_batch
+        FROM bom_headers bh
+        JOIN items fg ON fg.id = bh.finished_item_id
+        LEFT JOIN bom_lines bl ON bl.bom_id = bh.id
+        LEFT JOIN items rm ON rm.id = bl.item_id
+        WHERE bh.is_active = true
+        ORDER BY bh.id, bl.id
+    """)).fetchall()
+
+    boms = {}
+    for row in rows:
+        bom = boms.setdefault(row.bom_id, {
+            "bom_id": row.bom_id,
+            "version": row.version,
+            "batch_output_qty": str(row.batch_output_qty),
+            "finished_item_code": row.finished_item_code,
+            "finished_item_name": row.finished_item_name,
+            "components": [],
+        })
+        if row.component_code is not None:
+            bom["components"].append({
+                "item_code": row.component_code,
+                "item_name": row.component_name,
+                "unit": row.component_unit,
+                "qty_per_batch": str(row.qty_per_batch),
+            })
+    return list(boms.values())
+
+
+# ------------------------------------------------------------------
+# GET /production/runs
+# Read-only production history. No posting or stock movement occurs.
+# ------------------------------------------------------------------
+
+@router.get("/runs")
+def list_production_runs(
+    conn=Depends(get_db),
+    user=Depends(require_role("admin", "production", "auditor", "owner")),
+):
+    rows = conn.execute(text("""
+        SELECT pr.id, pr.run_date, pr.bom_id, pr.planned_output,
+               pr.actual_output, pr.damaged_qty, pr.cartons_used, pr.status,
+               pr.labour_cost, pr.overhead_cost, pr.created_at,
+               u.name AS created_by,
+               fg.code AS finished_item_code, fg.name AS finished_item_name
+        FROM production_runs pr
+        JOIN bom_headers bh ON bh.id = pr.bom_id
+        JOIN items fg ON fg.id = bh.finished_item_id
+        LEFT JOIN users u ON u.id = pr.created_by
+        ORDER BY pr.run_date DESC, pr.id DESC
+    """)).fetchall()
+
+    lines = conn.execute(text("""
+        SELECT pl.run_id, i.code AS item_code, i.name AS item_name,
+               i.unit, pl.planned_qty, pl.actual_qty
+        FROM production_lines pl
+        JOIN items i ON i.id = pl.item_id
+        ORDER BY pl.run_id DESC, pl.id
+    """)).fetchall()
+    by_run = {}
+    for line in lines:
+        by_run.setdefault(line.run_id, []).append({
+            "item_code": line.item_code,
+            "item_name": line.item_name,
+            "unit": line.unit,
+            "planned_qty": str(line.planned_qty),
+            "actual_qty": str(line.actual_qty),
+            "variance_qty": str(Decimal(str(line.actual_qty)) - Decimal(str(line.planned_qty))),
+        })
+
+    return [{
+        "run_id": row.id,
+        "run_date": str(row.run_date),
+        "bom_id": row.bom_id,
+        "finished_item_code": row.finished_item_code,
+        "finished_item_name": row.finished_item_name,
+        "planned_output": str(row.planned_output),
+        "actual_output": str(row.actual_output),
+        "damaged_qty": str(row.damaged_qty),
+        "cartons_used": str(row.cartons_used),
+        "status": row.status,
+        "labour_cost": str(row.labour_cost),
+        "overhead_cost": str(row.overhead_cost),
+        "created_by": row.created_by,
+        "created_at": row.created_at.isoformat() if row.created_at else None,
+        "lines": by_run.get(row.id, []),
+    } for row in rows]
+
+
+# ------------------------------------------------------------------
 # POST /production/start
 # Creates a draft production run with planned quantities from BOM.
 # No stock movement at this stage.
@@ -98,6 +201,11 @@ def start_production(
         # 3. Calculate planned quantities scaled to planned_output
         # planned_qty = qty_per_batch × (planned_output / batch_output_qty)
         batch_output_qty = Decimal(str(bom.batch_output_qty))
+        if batch_output_qty <= 0:
+            raise HTTPException(
+                status_code=422,
+                detail="BOM batch_output_qty must be greater than zero",
+            )
         planned_output = body.planned_output
         scale = planned_output / batch_output_qty
 
@@ -188,6 +296,7 @@ def post_production(
                 FROM production_runs pr
                 JOIN bom_headers bh ON bh.id = pr.bom_id
                 WHERE pr.id = :run_id
+                FOR UPDATE OF pr
             """),
             {"run_id": run_id},
         ).fetchone()
@@ -219,11 +328,18 @@ def post_production(
         # 3. Validate actual lines match BOM items exactly
         actual_map = {}
         for al in body.actual_lines:
+            if al.item_code in actual_map:
+                raise HTTPException(
+                    status_code=422,
+                    detail=f"Duplicate actual material code: {al.item_code}",
+                )
+
             if al.item_code not in planned_map:
                 raise HTTPException(
                     status_code=422,
                     detail=f"Item '{al.item_code}' is not in this BOM",
                 )
+
             actual_map[al.item_code] = al.actual_qty
 
         # Every BOM item must have an actual entry

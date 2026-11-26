@@ -19,8 +19,14 @@ export default function Login() {
       localStorage.setItem('token', res.data.token)
       localStorage.setItem('role', res.data.role)
       localStorage.setItem('name', res.data.name)
-      if (res.data.role === 'admin') navigate('/admin')
-      else navigate('/salesman')
+      const destinations = {
+        admin: '/admin',
+        salesman: '/salesman',
+        production: '/production',
+        auditor: '/accountant',
+        owner: '/owner',
+      }
+      navigate(destinations[res.data.role] || '/login')
     } catch (err) {
       setError(err.response?.data?.detail || 'Login failed')
     } finally {

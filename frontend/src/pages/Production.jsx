@@ -11,10 +11,14 @@ export default function Production() {
   const [message, setMessage] = useState(null)
   const [error, setError] = useState(null)
   const [draftRun, setDraftRun] = useState(null)
+  const [boms, setBoms] = useState([])
+  const [runs, setRuns] = useState([])
+  const [historyError, setHistoryError] = useState('')
 
   // Start run form
   const [startForm, setStartForm] = useState({
     fg_item_code: 'FG-MRK200',
+    bom_id: '1',
     batch_size: 1,
     run_date: new Date().toISOString().split('T')[0],
     notes: '',
@@ -25,8 +29,22 @@ export default function Production() {
   // Post run form
   const [postForm, setPostForm] = useState({
     actual_output: '',
+    damaged_qty: '0',
+    cartons_used: '0',
     actual_lines: [],
   })
+
+  useEffect(() => {
+    Promise.all([api.get('/production/boms'), api.get('/production/runs')])
+      .then(([bomRes, runRes]) => {
+        setBoms(bomRes.data)
+        setRuns(runRes.data)
+        if (bomRes.data.length) {
+          setStartForm(p => ({ ...p, bom_id: String(bomRes.data[0].bom_id), fg_item_code: bomRes.data[0].finished_item_code }))
+        }
+      })
+      .catch(() => setHistoryError('Could not load BOM or production history.'))
+  }, [])
 
   function logout() {
     localStorage.clear()
@@ -40,10 +58,15 @@ export default function Production() {
 
   try {
     const batches = parseInt(startForm.batch_size, 10)
+    const selectedBom = boms.find(bom => String(bom.bom_id) === String(startForm.bom_id))
+    if (!selectedBom) {
+      setError('Select an active BOM before starting production.')
+      return
+    }
 
     const res = await api.post('/production/start', {
-      bom_id: 1,
-      planned_output: batches * 200,
+      bom_id: Number(startForm.bom_id),
+      planned_output: batches * Number(selectedBom.batch_output_qty),
       run_date: startForm.run_date,
       labour_cost: parseFloat(startForm.labour_cost || 0),
       overhead_cost: parseFloat(startForm.overhead_cost || 0),
@@ -74,6 +97,8 @@ export default function Production() {
     try {
       const payload = {
         actual_output: parseInt(postForm.actual_output),
+        damaged_qty: parseFloat(postForm.damaged_qty || 0),
+        cartons_used: parseFloat(postForm.cartons_used || 0),
         actual_lines: postForm.actual_lines.map(l => ({
           item_code: l.item_code,
           actual_qty: parseFloat(l.actual_qty),
@@ -85,7 +110,8 @@ export default function Production() {
         `Cost per packet: ₹${res.data.cost_per_packet}.`
       )
       setDraftRun(null)
-      setPostForm({ actual_output: '', actual_lines: [] })
+      setPostForm({ actual_output: '', damaged_qty: '0', cartons_used: '0', actual_lines: [] })
+      api.get('/production/runs').then(res => setRuns(res.data)).catch(() => {})
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to post production run')
     }
@@ -116,6 +142,18 @@ export default function Production() {
 
         {message && <div className="bg-green-50 text-green-700 text-sm rounded p-3">{message}</div>}
         {error && <div className="bg-red-50 text-red-600 text-sm rounded p-3">{error}</div>}
+        {historyError && <div className="bg-yellow-50 text-yellow-800 text-sm rounded p-3">{historyError}</div>}
+
+        <section className="bg-white rounded-xl shadow-sm p-4">
+          <h2 className="font-semibold text-gray-700 mb-3">Active Bill of Materials</h2>
+          {boms.map(bom => (
+            <div key={bom.bom_id} className="border rounded-lg p-3 mb-3 last:mb-0">
+              <div className="text-sm font-medium">{bom.finished_item_code} · {bom.finished_item_name}</div>
+              <div className="text-xs text-gray-500 mb-2">BOM #{bom.bom_id} · Version {bom.version} · Batch output {bom.batch_output_qty}</div>
+              <div className="text-xs text-gray-600">{bom.components.map(line => `${line.item_code} — ${line.qty_per_batch} ${line.unit}`).join(' · ')}</div>
+            </div>
+          ))}
+        </section>
 
         {/* Step 1 — Start a production run */}
         {!draftRun && (
@@ -127,13 +165,18 @@ export default function Production() {
 
             <form onSubmit={handleStart} className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-xs text-gray-500">Finished Good Item Code</label>
-                <input
-                  value={startForm.fg_item_code}
-                  onChange={e => setStartForm(p => ({ ...p, fg_item_code: e.target.value }))}
+                <label className="text-xs text-gray-500">Finished Good / BOM</label>
+                <select
+                  value={startForm.bom_id}
+                  onChange={e => {
+                    const bom = boms.find(item => String(item.bom_id) === e.target.value)
+                    setStartForm(p => ({ ...p, bom_id: e.target.value, fg_item_code: bom?.finished_item_code || '' }))
+                  }}
                   required
                   className="w-full border rounded px-2 py-1 text-sm mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                />
+                >
+                  {boms.map(bom => <option key={bom.bom_id} value={bom.bom_id}>{bom.finished_item_code} · {bom.finished_item_name}</option>)}
+                </select>
               </div>
               <div>
                 <label className="text-xs text-gray-500">Number of Batches</label>
@@ -252,6 +295,18 @@ export default function Production() {
                     className="w-full border rounded px-2 py-1 text-sm mt-1 focus:outline-none focus:ring-2 focus:ring-blue-400"
                   />
                 </div>
+                <div>
+                  <label className="text-xs text-gray-500">Damaged / Wastage Qty</label>
+                  <input type="number" min="0" step="0.001" value={postForm.damaged_qty}
+                    onChange={e => setPostForm(p => ({ ...p, damaged_qty: e.target.value }))}
+                    className="w-full border rounded px-2 py-1 text-sm mt-1" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-500">Cartons Used</label>
+                  <input type="number" min="0" step="0.001" value={postForm.cartons_used}
+                    onChange={e => setPostForm(p => ({ ...p, cartons_used: e.target.value }))}
+                    className="w-full border rounded px-2 py-1 text-sm mt-1" />
+                </div>
               </div>
 
               <div className="flex gap-3">
@@ -267,6 +322,16 @@ export default function Production() {
             </form>
           </div>
         )}
+
+        <section className="bg-white rounded-xl shadow-sm p-4">
+          <h2 className="font-semibold text-gray-700 mb-3">Production History</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="text-left text-gray-500 border-b"><th className="py-2 pr-3">Run</th><th className="py-2 pr-3">Date</th><th className="py-2 pr-3">Finished Good</th><th className="py-2 pr-3">Planned</th><th className="py-2 pr-3">Actual</th><th className="py-2 pr-3">Damaged</th><th className="py-2">Status</th></tr></thead>
+              <tbody>{runs.map(run => <tr key={run.run_id} className="border-b last:border-0"><td className="py-2 pr-3">{run.run_id}</td><td className="py-2 pr-3">{run.run_date}</td><td className="py-2 pr-3">{run.finished_item_code}</td><td className="py-2 pr-3">{run.planned_output}</td><td className="py-2 pr-3">{run.actual_output}</td><td className="py-2 pr-3">{run.damaged_qty}</td><td className="py-2 capitalize">{run.status}</td></tr>)}</tbody>
+            </table>
+          </div>
+        </section>
 
       </div>
     </div>

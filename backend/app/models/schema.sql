@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS suppliers (
 CREATE TABLE IF NOT EXISTS bom_headers (
     id                SERIAL PRIMARY KEY,
     finished_item_id  INTEGER      NOT NULL REFERENCES items(id),
-    batch_output_qty  NUMERIC(10,3) NOT NULL,  -- expected packets per batch (e.g. 200)
+    batch_output_qty  NUMERIC(10,3) NOT NULL CHECK (batch_output_qty > 0),  -- expected packets per batch (e.g. 200)
     version           INTEGER      NOT NULL DEFAULT 1,
     is_active         BOOLEAN      NOT NULL DEFAULT true,
     created_at        TIMESTAMPTZ  NOT NULL DEFAULT now()
