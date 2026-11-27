@@ -15,8 +15,8 @@
 
 ## 2. Stock Ledger Design
 
-The stock_ledger table is the single source of truth for all inventory balances.
-No table stores a running balance. Balance is always computed as:
+The stock ledger is the single source of truth for inventory movements. Current stock is derived from ledger entries; reports may calculate running balances over the ordered ledger rows.
+No table stores a running balance. A basic ledger balance calculation is:
 
     SELECT SUM(qty_in) - SUM(qty_out) FROM stock_ledger WHERE item_id = X
 
@@ -51,6 +51,8 @@ For the intended benchmark calculation:
   Flour purchase: 60 kg @ ₹45 = ₹2,700
   WAC = (4200 + 2700) / (100 + 60) = ₹43.125/kg
 
+The benchmark assumes the purchase occurs before production. In the preserved runtime sequence, production occurred before the purchase, so the production issue used the opening flour rate of ₹42/kg. The subsequent purchase produced a closing flour balance of 120 kg and a post-purchase WAC of ₹43.50/kg. This later WAC does not retroactively change the earlier production issue rate.
+
 ## 5. GST Logic
 
 Seller state: Tamil Nadu (TN, code 33)
@@ -67,7 +69,6 @@ Determined by comparing customers.state_code with seller state at invoice time.
 - Auth: JWT (python-jose + bcrypt)
 - PDF: WeasyPrint
 - Excel: openpyxl
-- Deployment: Railway (backend) + Vercel (frontend)
 
 ## 7. Item Classification Enforcement
 

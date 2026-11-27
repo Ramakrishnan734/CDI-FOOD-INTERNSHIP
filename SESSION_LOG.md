@@ -544,7 +544,7 @@ Frontend: http://localhost:5173
 The cost per packet (₹31.1436) differs from a simple calculation because:
 - Opening 50 FG packets have rate = 0 (assumption 4)
 - WAC for dispatch is blended across opening + produced stock
-- All variances are within expected ranges given actual vs planned quantities
+- The benchmark production run yielded 188 packets from a planned 200 (-6% yield variance). Oil usage was +5% and was flagged against the 3% variance threshold.
 
 ---
 

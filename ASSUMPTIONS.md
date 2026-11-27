@@ -45,14 +45,14 @@
    payment totals use NUMERIC(15,2). Python Decimal is used in financial
    calculations; report exports convert values to floats for Excel output.
 
-11. Item code prefixes are enforced to match item_type:
+4. Item code prefixes are enforced to match item_type:
     RM- → raw, PK- → packaging, FG- → finished.
     Enforced at both API layer and database constraint level.
     The current database constraint requires one of these recognised prefixes.
     The API validation allows an unknown prefix through, but the database rejects
     it; unknown-prefix items therefore cannot be created.
 
-12. Purchase API is idempotent: a client_request_id + SHA-256 payload hash
+5. Purchase API is idempotent: a client_request_id + SHA-256 payload hash
     prevents duplicate purchase orders on network retry.
     Same ID + same payload → returns original result (200).
     Same ID + different payload → rejected (409).

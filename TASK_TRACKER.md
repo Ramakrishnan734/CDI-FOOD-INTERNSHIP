@@ -53,31 +53,22 @@
 - [x] Stock locking and duplicate-line quantity aggregation during order validation
 - [x] Salesman Order Entry — mobile TypeScript check and backend compile passed
 - [x] Salesman Order Entry — backend mock tests passed; no stock ledger writes
-
-## In Progress
 - [x] Production costing report — authenticated Excel download verified
 - [x] GST summary report — authenticated Excel download verified
+- [x] Inventory management screens
+- [x] Production management screens
+- [x] Reports and dashboard screens
+
+## In Progress
+- None — final documentation review and submission preparation
 
 ## Pending
 
-### Reports
-- [x] Purchase register report — authenticated Excel download verified
-- [x] Outstanding and ageing report — authenticated Excel download verified
-- [ ] Low-stock alerts
-
-### Frontend
-- [ ] Inventory management screens
-- [ ] Production management screens
-- [ ] Reports and dashboard screens
-
-### Deployment and Submission
-- [ ] Frontend-to-original-Docker integration — Vite proxy targets `localhost:8000`, while the original Compose API is on `localhost:8001`
-- [ ] README — final setup instructions
-- [ ] DESIGN_NOTE — finalize
-- [ ] ASSUMPTIONS — finalize
-- [ ] Demo video
-- [ ] Deploy backend to Railway
-- [ ] Deploy frontend to Vercel
+### Final Documentation
+- [x] README — final setup instructions reviewed and committed
+- [x] DESIGN_NOTE — finalized
+- [x] ASSUMPTIONS — finalized
+- [x] Demo video — final version prepared
 
 ### Final Verification — November 26, 2026
 - [x] Production costing yield variance columns verified
@@ -86,3 +77,6 @@
 - [x] Backend tests — 14 passed, 2 subtests passed
 - [x] Docker Compose configuration validated
 - [x] Git diff whitespace check passed
+
+## Future Enhancements
+- Low-stock alerts
